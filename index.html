@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>APAAR | Student Data & Verification</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="loginView" class="login-shell">
+    <div class="login-brand">
+      <div class="brand-mark">A</div>
+      <div><div class="brand-title">APAAR<span> | AICTE</span></div><div class="brand-subtitle">Student Data & Verification System</div></div>
+    </div>
+    <div class="login-content">
+      <div class="login-copy">
+        <div class="eyebrow">ACADEMIC DATA INTEGRITY</div>
+        <h1>Trusted student records.<br><em>Stronger institutions.</em></h1>
+        <p>A unified workspace for student record validation, duplicate detection, intake monitoring and simulated APAAR verification.</p>
+        <div class="login-points"><span>✓ Record validation</span><span>✓ Duplicate alerts</span><span>✓ Intake monitoring</span></div>
+      </div>
+      <div class="login-card">
+        <div class="card-icon">↗</div><h2>Sign in to workspace</h2><p class="muted">Choose a demo role to explore the prototype.</p>
+        <label for="roleSelect">Workspace role</label>
+        <select id="roleSelect"><option value="admin">AICTE Administrator</option><option value="institution">Institution Administrator</option><option value="verifier">Verifier</option></select>
+        <label for="userSelect">Demo account</label>
+        <select id="userSelect"><option value="national">National Admin · AICTE</option><option value="college">Institution Admin · Western Institute</option><option value="verifier">Verifier · Regional Desk</option></select>
+        <button id="loginBtn" class="primary-btn full">Enter dashboard <span>→</span></button>
+        <div class="demo-note"><span class="dot"></span> Demo mode · no real government systems connected</div>
+      </div>
+    </div>
+    <div class="login-footer">Prototype for demonstration purposes · Sample student data only</div>
+  </div>
+
+  <div id="appView" class="app-shell hidden">
+    <aside class="sidebar">
+      <div class="sidebar-brand"><div class="brand-mark small">A</div><div><div class="brand-title">APAAR<span> | AICTE</span></div><div class="brand-subtitle">Data Integrity Portal</div></div></div>
+      <div class="workspace-label">WORKSPACE</div>
+      <nav id="sideNav">
+        <button class="nav-item active" data-page="overview"><span>▦</span> Overview</button>
+        <button class="nav-item" data-page="students"><span>♙</span> Student records <b id="navStudentCount">248</b></button>
+        <button class="nav-item" data-page="validation"><span>✓</span> Validation queue <b class="nav-alert">12</b></button>
+        <button class="nav-item" data-page="duplicates"><span>⧉</span> Duplicate alerts <b class="nav-alert">4</b></button>
+        <button class="nav-item" data-page="institutions"><span>⌂</span> Institutions</button>
+        <button class="nav-item" data-page="verification"><span>⌕</span> Verify a student</button>
+        <button class="nav-item" data-page="reports"><span>▤</span> Reports & exports</button>
+      </nav>
+      <div class="sidebar-bottom"><div class="secure-icon">♧</div><div><strong>Prototype environment</strong><p>Mock records and simulated checks only.</p></div></div>
+      <button id="logoutBtn" class="logout-btn">↪ &nbsp; Sign out</button>
+    </aside>
+    <main class="main-area">
+      <header class="topbar"><div class="breadcrumbs">AICTE Portal <span>/</span> <strong id="breadcrumb">Overview</strong></div><div class="top-actions"><span class="environment-pill"><span class="dot"></span> SIMULATION</span><button class="icon-btn" title="Notifications">♧<i></i></button><div class="user-chip"><div class="avatar" id="avatar">NA</div><div><strong id="userName">National Admin</strong><small id="userRole">AICTE Administrator</small></div><span>⌄</span></div></div></header>
+      <div class="page-wrap">
+        <div class="page-heading"><div><div class="eyebrow" id="pageEyebrow">NATIONAL OVERVIEW</div><h1 id="pageTitle">Good afternoon, Admin <span>✦</span></h1><p id="pageDescription">A live-style snapshot of academic data quality across approved institutions.</p></div><div class="heading-actions"><button class="secondary-btn" id="exportBtn">↓ Export summary</button><button class="primary-btn" id="newRecordBtn">＋ Add student</button></div></div>
+        <div class="notice"><span class="notice-icon">i</span><div><strong>Simulation notice</strong><span>APAAR lookups, identity matches and document checks are simulated with sample data. No real AICTE or government registry is connected.</span></div><button id="dismissNotice" aria-label="Dismiss notice">×</button></div>
+        <section id="pageContent"></section>
+      </div>
+      <footer class="main-footer"><span>APAAR Student Data & Verification System <b>·</b> Prototype v1.0</span><span>Privacy-first design <b>·</b> Mock data only</span></footer>
+    </main>
+  </div>
+  <div id="modalRoot"></div>
+  <div id="toastRoot" class="toast-root"></div>
+  <script src="app.js"></script>
+</body>
+</html>
