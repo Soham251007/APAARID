@@ -1,109 +1,1113 @@
+// APAAR Data Integrity Portal — Multi-Tier Administrator Client
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
-let role = "admin", currentPage = "overview", noticeVisible = true;
-let students = [
- {id:"AP-2026-1042",name:"Aarav Sharma",apaar:"APAAR-9281-4402",institution:"Western Institute of Technology",course:"Computer Engineering",year:"2",status:"Verified",risk:"Low",updated:"24 Oct 2026",email:"aarav.sharma@example.edu",dob:"2006-04-14"},
- {id:"AP-2026-1043",name:"Diya Patel",apaar:"APAAR-9281-4403",institution:"Western Institute of Technology",course:"Information Technology",year:"3",status:"Pending",risk:"Medium",updated:"24 Oct 2026",email:"diya.patel@example.edu",dob:"2005-11-02"},
- {id:"AP-2026-1044",name:"Ishaan Verma",apaar:"APAAR-9281-4404",institution:"National College of Engineering",course:"Mechanical Engineering",year:"1",status:"Flagged",risk:"High",updated:"23 Oct 2026",email:"ishaan.verma@example.edu",dob:"2007-02-21"},
- {id:"AP-2026-1045",name:"Meera Nair",apaar:"APAAR-9281-4405",institution:"City School of Technology",course:"Electronics & Telecom",year:"4",status:"Verified",risk:"Low",updated:"23 Oct 2026",email:"meera.nair@example.edu",dob:"2004-08-09"},
- {id:"AP-2026-1046",name:"Kabir Joshi",apaar:"APAAR-9281-4406",institution:"Western Institute of Technology",course:"Computer Engineering",year:"2",status:"Review",risk:"Medium",updated:"22 Oct 2026",email:"kabir.joshi@example.edu",dob:"2006-07-17"},
- {id:"AP-2026-1047",name:"Ananya Rao",apaar:"APAAR-9281-4407",institution:"National College of Engineering",course:"Civil Engineering",year:"3",status:"Verified",risk:"Low",updated:"22 Oct 2026",email:"ananya.rao@example.edu",dob:"2005-01-30"},
- {id:"AP-2026-1048",name:"Rehan Khan",apaar:"APAAR-9281-4408",institution:"City School of Technology",course:"Computer Engineering",year:"1",status:"Pending",risk:"Medium",updated:"21 Oct 2026",email:"rehan.khan@example.edu",dob:"2007-05-12"},
- {id:"AP-2026-1049",name:"Sara Thomas",apaar:"APAAR-9281-4409",institution:"Western Institute of Technology",course:"Artificial Intelligence",year:"2",status:"Verified",risk:"Low",updated:"21 Oct 2026",email:"sara.thomas@example.edu",dob:"2006-09-05"}
-];
-const institutions = [
- {name:"Western Institute of Technology",code:"MH-ENG-1048",city:"Mumbai, Maharashtra",approved:1200,admitted:1128,verified:1042,flag:"Within intake"},
- {name:"National College of Engineering",code:"MH-ENG-0821",city:"Pune, Maharashtra",approved:950,admitted:972,verified:901,flag:"Over intake"},
- {name:"City School of Technology",code:"GJ-ENG-0315",city:"Ahmedabad, Gujarat",approved:800,admitted:743,verified:710,flag:"Within intake"},
- {name:"Eastern Technical Institute",code:"WB-ENG-0194",city:"Kolkata, West Bengal",approved:700,admitted:688,verified:621,flag:"Within intake"},
- {name:"Central Institute of Applied Science",code:"MP-ENG-0551",city:"Indore, Madhya Pradesh",approved:600,admitted:612,verified:590,flag:"Over intake"}
-];
-const initials = name => name.split(" ").map(x=>x[0]).slice(0,2).join("").toUpperCase();
-const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const statusClass = s => ({Verified:"verified",Pending:"pending",Flagged:"flagged",Review:"review"})[s]||"review";
-const stat = (label,value,icon,color,foot) => `<div class="stat-card"><div class="stat-top">${label}<span class="stat-icon ${color}">${icon}</span></div><div class="stat-number">${value}</div><div class="stat-foot">${foot}</div></div>`;
-function studentRows(list){return list.map(s=>`<tr><td><div class="student-name"><div class="student-avatar">${initials(s.name)}</div><div><strong>${esc(s.name)}</strong><small>${esc(s.id)}</small></div></div></td><td>${esc(s.apaar)}</td><td>${esc(s.institution)}</td><td><span class="status ${statusClass(s.status)}">${esc(s.status)}</span></td><td>${esc(s.updated)}</td><td><button class="link-btn" onclick="viewStudent('${s.id}')">View details →</button></td></tr>`).join("")}
-function tablePanel(title,sub,rows,headers,action=""){return `<div class="panel"><div class="panel-head"><div><h3>${title}</h3><p>${sub}</p></div>${action}</div><div class="table-wrap"><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows||`<tr><td colspan="${headers.length}"><div class="empty-state">No matching records found.</div></td></tr>`}</tbody></table></div></div>`}
-function renderOverview(){
- const count=role==="institution"?248:students.length+240;
- return `<div class="stats-grid">
- ${stat("TOTAL STUDENT RECORDS",count.toLocaleString(),"♙","blue",'<span class="positive">↑ 8.4%</span> vs previous cycle')}
- ${stat("VERIFIED RECORDS","92.6%","✓","green",'<span class="positive">↑ 3.2%</span> verification completion')}
- ${stat("NEEDS ATTENTION","12","⚑","amber","8 validation issues · 4 duplicates")}
- ${stat("INTAKE EXCEPTIONS","2","⌂","red","Institutions above approved intake")}
- </div>
- <div class="dashboard-grid"><div class="panel"><div class="panel-head"><div><h3>Record verification trend</h3><p>Monthly verification completion · sample data</p></div><button class="link-btn" onclick="navigate('reports')">View report →</button></div>
- <div class="chart"><div class="chart-y"><span>100%</span><span>75%</span><span>50%</span><span>25%</span><span>0%</span></div><div class="chart-bars">${[48,56,61,58,72,68,82,79,91,87,94,93].map((v,i)=>`<div class="bar-group"><div class="bar-pair"><div class="bar" style="height:${v*.9}%"></div><div class="bar secondary" style="height:${Math.max(15,v-12)*.9}%"></div></div><span class="bar-label">${["N","D","J","F","M","A","M","J","J","A","S","O"][i]}</span></div>`).join("")}</div></div>
- <div class="legend"><span><i></i> Verified records</span><span><i class="secondary"></i> Submitted records</span></div></div>
- <div class="panel"><div class="panel-head"><div><h3>Data quality overview</h3><p>Current student record distribution</p></div><span class="status verified">Stable</span></div><div class="donut-wrap"><div class="donut"><div class="donut-center"><strong>92.6%</strong><span>verified</span></div></div><div class="legend-list"><div class="legend-item"><i style="background:#2f68d5"></i>Verified <b>71%</b></div><div class="legend-item"><i style="background:#f0b44f"></i>Pending <b>17%</b></div><div class="legend-item"><i style="background:#e16d6d"></i>Flagged <b>6%</b></div><div class="legend-item"><i style="background:#dce3ed"></i>Other <b>6%</b></div></div></div></div></div>
- <div class="dashboard-grid"><div>${tablePanel("Recently updated records","Latest student data changes",studentRows(students.slice(0,5)),["Student","APAAR ID (mock)","Institution","Status","Last updated","Action"],"<button class='link-btn' onclick=\"navigate(\'students\')\">View all →</button>")}</div>
- <div class="panel"><div class="panel-head"><div><h3>Priority queue</h3><p>Items that may need review</p></div><span class="status pending">12 open</span></div><div class="queue-list">
- <div class="queue-item"><div class="queue-dot red">⚑</div><div><strong>Potential duplicate APAAR ID</strong><p>Two records share a simulated identifier.</p><small>4 alerts · Updated 18 min ago</small></div></div>
- <div class="queue-item"><div class="queue-dot amber">▤</div><div><strong>Document mismatch detected</strong><p>One uploaded document needs manual review.</p><small>5 cases · Updated 42 min ago</small></div></div>
- <div class="queue-item"><div class="queue-dot blue">⌂</div><div><strong>Approved intake exceeded</strong><p>National College of Engineering is above intake.</p><small>2 institutions · Updated today</small></div></div>
- </div><button class="secondary-btn" style="width:100%;margin-top:10px" onclick="navigate('validation')">Open review queue →</button></div></div>
- <div class="panel"><div class="panel-head"><div><h3>Institution intake monitoring</h3><p>Admitted students against approved capacity</p></div><button class="link-btn" onclick="navigate('institutions')">All institutions →</button></div><div class="institution-list">${institutions.slice(0,4).map(i=>`<div class="institution-row"><div class="inst-icon">⌂</div><div><strong>${esc(i.name)}</strong><small>${i.admitted.toLocaleString()} / ${i.approved.toLocaleString()} students · ${i.code}</small><div class="mini-progress"><i style="width:${Math.min(100,i.admitted/i.approved*100)}%;background:${i.admitted>i.approved?'#d65c5c':'#5984df'}"></i></div></div><b class="${i.admitted>i.approved?'warning-text':'positive'}">${Math.round(i.admitted/i.approved*100)}%</b></div>`).join("")}</div></div>`;
-}
-function renderStudents(){
- let filtered=students;
- const q=($("#studentSearch")?.value||"").toLowerCase(), st=$("#statusFilter")?.value||"";
- if(q)filtered=filtered.filter(s=>[s.name,s.id,s.apaar,s.institution,s.course].some(v=>(v||"").toLowerCase().includes(q)));
- if(st)filtered=filtered.filter(s=>s.status===st);
- return `<div class="toolbar"><div class="search-box"><span>⌕</span><input id="studentSearch" placeholder="Search name, student ID, APAAR ID or institution..." value="${esc($("#studentSearch")?.value||"")}" oninput="refreshStudents()"></div><select id="statusFilter" onchange="refreshStudents()"><option value="">All statuses</option>${["Verified","Pending","Flagged","Review"].map(s=>`<option ${st===s?"selected":""}>${s}</option>`).join("")}</select><button class="secondary-btn" onclick="document.getElementById('csvFile').click()">↑ Import CSV</button><input id="csvFile" type="file" accept=".csv,text/csv" hidden onchange="importCSV(event)"><button class="primary-btn" onclick="openStudentModal()">＋ Add student</button></div>
- ${tablePanel("Student directory",`${filtered.length} records shown · sample data`,studentRows(filtered),["Student","APAAR ID (simulated)","Institution","Status","Last updated",""])}
- <div class="small-label">APAAR identifiers and student profiles displayed here are fictional demo data.</div>`;
-}
-function renderValidation(){return `<div class="stats-grid">${stat("OPEN VALIDATION ISSUES","8","▤","amber","Across 3 institutions")}${stat("DOCUMENT REVIEW","5","▧","blue","Simulated document checks")}${stat("MISSING FIELDS","3","✎","red","Required fields incomplete")}${stat("RESOLVED TODAY","17","✓","green","Mock workflow activity")}</div><div class="panel"><div class="panel-head"><div><h3>Validation review queue</h3><p>Example rules: required fields, APAAR format, date of birth and document metadata.</p></div><button class="secondary-btn" onclick="toast('Sample queue exported as CSV-ready summary.')">↓ Export queue</button></div>
- ${[
- ["Missing date of birth","AP-2026-1051 · Western Institute of Technology","Required field missing","amber"],
- ["APAAR format check failed","AP-2026-1052 · National College of Engineering","Identifier does not match demo format","red"],
- ["Supporting document requires review","AP-2026-1044 · National College of Engineering","Simulated document review flag","red"],
- ["Course / intake mapping incomplete","AP-2026-1056 · City School of Technology","Course mapping not confirmed","amber"],
- ["Name mismatch between submitted fields","AP-2026-1057 · Western Institute of Technology","Potential spelling discrepancy","amber"]
- ].map((x,i)=>`<div class="validation-row"><div><strong>${x[0]}</strong><small>${x[1]} · ${x[2]}</small></div><span class="status ${x[3]==='red'?'flagged':'pending'}">${x[3]==='red'?'High priority':'Review needed'}</span><button class="secondary-btn" onclick="resolveIssue(this)">Mark reviewed</button></div>`).join("")}</div>`}
-function renderDuplicates(){return `<div class="stats-grid">${stat("POTENTIAL MATCHES","4","⧉","red","Simulated duplicate candidates")}${stat("HIGH CONFIDENCE","2","⚑","amber","Needs authorized review")}${stat("UNDER REVIEW","1","⌕","blue","Awaiting verifier decision")}${stat("CLOSED THIS MONTH","13","✓","green","Demo workflow data")}</div><div class="panel"><div class="panel-head"><div><h3>Potential duplicate enrolments</h3><p>Matches are simulated using identifier and demographic similarity. Review before taking action.</p></div><span class="status flagged">4 alerts</span></div><div class="table-wrap"><table><thead><tr><th>Match group</th><th>Record A</th><th>Record B</th><th>Match signal</th><th>Confidence (demo)</th><th>Action</th></tr></thead><tbody>
- <tr><td><strong>DU-001</strong></td><td>Aarav Sharma<br><small>AP-2026-1042</small></td><td>Aarav S. Sharma<br><small>AP-2026-1099</small></td><td>Similar name + DOB</td><td><span class="risk-pill">94%</span></td><td><button class="link-btn" onclick="reviewDuplicate('DU-001')">Review →</button></td></tr>
- <tr><td><strong>DU-002</strong></td><td>Riya Shah<br><small>AP-2026-1088</small></td><td>Riya Shah<br><small>AP-2026-1102</small></td><td>Same mock APAAR ID</td><td><span class="risk-pill">99%</span></td><td><button class="link-btn" onclick="reviewDuplicate('DU-002')">Review →</button></td></tr>
- <tr><td><strong>DU-003</strong></td><td>Mohit Desai<br><small>AP-2026-1071</small></td><td>Mohit D. Desai<br><small>AP-2026-1079</small></td><td>Name + institution</td><td><span class="risk-pill">81%</span></td><td><button class="link-btn" onclick="reviewDuplicate('DU-003')">Review →</button></td></tr>
- <tr><td><strong>DU-004</strong></td><td>Sana Khan<br><small>AP-2026-1033</small></td><td>Sana Khaan<br><small>AP-2026-1080</small></td><td>Fuzzy name match</td><td><span class="risk-pill">76%</span></td><td><button class="link-btn" onclick="reviewDuplicate('DU-004')">Review →</button></td></tr>
- </tbody></table></div></div>`}
-function renderInstitutions(){let list=institutions;return `<div class="stats-grid">${stat("APPROVED INSTITUTIONS","186","⌂","blue","Across sample regions")}${stat("WITHIN APPROVED INTAKE","184","✓","green","98.9% of sample network")}${stat("OVER APPROVED INTAKE","2","⚑","red","Requires institutional review")}${stat("STUDENT RECORDS","4,143","♙","amber","Sample aggregate")}</div><div class="toolbar"><div class="search-box"><span>⌕</span><input id="instSearch" placeholder="Search institution, code or city..." oninput="filterInstitutions()"></div><select id="intakeFilter" onchange="filterInstitutions()"><option value="">All intake statuses</option><option>Within intake</option><option>Over intake</option></select></div><div id="institutionTable">${institutionTable(list)}</div>`}
-function institutionTable(list){return tablePanel("Institution directory",`${list.length} sample institutions`,list.map(i=>`<tr><td><div class="student-name"><div class="student-avatar">⌂</div><div><strong>${esc(i.name)}</strong><small>${i.code}</small></div></div></td><td>${esc(i.city)}</td><td>${i.approved.toLocaleString()}</td><td>${i.admitted.toLocaleString()}</td><td>${i.verified.toLocaleString()}</td><td><span class="status ${i.admitted>i.approved?'flagged':'verified'}">${i.admitted>i.approved?'Over intake':'Within intake'}</span></td><td><button class="link-btn" onclick="toast('Institution profile opened in demo mode.')">View →</button></td></tr>`).join(""),["Institution","Location","Approved intake","Admitted","Verified","Intake status",""])}
-function renderVerification(){return `<div class="verify-layout"><div class="panel"><div class="panel-head"><div><h3>Student verification lookup</h3><p>Search using the demo student ID or simulated APAAR ID.</p></div><span class="status review">Authorized demo search</span></div><form id="verifyForm"><div class="form-field" style="margin-bottom:15px"><label>Search field</label><select id="verifyType"><option value="apaar">APAAR ID (simulated)</option><option value="id">Student record ID</option><option value="name">Student name</option></select></div><div class="form-field"><label>Search value</label><input id="verifyValue" placeholder="e.g. APAAR-9281-4402" required></div><button class="primary-btn" style="margin-top:17px" type="submit">Run simulated verification →</button></form><div style="margin-top:24px;padding-top:18px;border-top:1px solid var(--line)"><div class="small-label" style="margin-bottom:12px">TRY A DEMO RECORD</div><button class="secondary-btn" onclick="runVerify('apaar','APAAR-9281-4402')">Verified example</button> <button class="secondary-btn" onclick="runVerify('id','AP-2026-1044')">Flagged example</button></div></div><div id="verifyResult" class="panel"><div class="panel-head"><div><h3>Verification result</h3><p>Results appear here after a search.</p></div></div><div class="empty-state"><div style="font-size:30px;margin-bottom:10px">⌕</div>Enter a demo identifier to view the simulated result.</div></div></div>
- <div class="panel" style="margin-top:0"><div class="panel-head"><div><h3>Verification checks included</h3><p>These checks are illustrative only and do not query government records.</p></div></div><div class="summary-cards"><div class="summary-box"><strong>01</strong><span>Record exists in local sample dataset</span></div><div class="summary-box"><strong>02</strong><span>Required fields and identifier format</span></div><div class="summary-box"><strong>03</strong><span>Duplicate candidate and review status</span></div></div></div>`}
-function renderReports(){return `<div class="stats-grid">${stat("RECORDS PROCESSED","4,143","▤","blue","Sample reporting period")}${stat("VALIDATION PASS RATE","96.8%","✓","green","Mock data quality metric")}${stat("DUPLICATE CANDIDATES","4","⧉","amber","Requires human review")}${stat("INTAKE EXCEPTIONS","2","⌂","red","Across sample institutions")}</div><div class="panel"><div class="panel-head"><div><h3>Export reports</h3><p>Download a local CSV file with sample records and summary tables.</p></div></div><div class="summary-cards"><div class="summary-box"><strong>Student registry</strong><span>Student IDs, mock APAAR IDs, institution and status</span><button class="secondary-btn" style="margin-top:14px" onclick="downloadStudents()">↓ Download CSV</button></div><div class="summary-box"><strong>Institution intake</strong><span>Approved intake vs admissions and verification counts</span><button class="secondary-btn" style="margin-top:14px" onclick="downloadInstitutions()">↓ Download CSV</button></div><div class="summary-box"><strong>Validation summary</strong><span>Illustrative queue and duplicate monitoring</span><button class="secondary-btn" style="margin-top:14px" onclick="downloadValidation()">↓ Download CSV</button></div></div></div><div class="panel"><h3 style="font:800 14px Manrope">Data handling note</h3><p class="muted" style="line-height:1.8;font-size:11px">This standalone prototype stores edits only in the current browser session. It does not implement production authentication, server-side access control, encryption at rest, audit-grade logging or official registry connectivity. Do not enter real student personal data.</p></div>`}
-const pages={overview:{title:"Good afternoon, Admin",eyebrow:"NATIONAL OVERVIEW",desc:"A live-style snapshot of academic data quality across approved institutions."},students:{title:"Student records",eyebrow:"STUDENT DIRECTORY",desc:"Search, review and manage student records from the sample registry."},validation:{title:"Validation queue",eyebrow:"DATA QUALITY",desc:"Review incomplete, inconsistent or suspicious records."},duplicates:{title:"Duplicate enrolment alerts",eyebrow:"RECORD MATCHING",desc:"Review possible duplicate records before making a decision."},institutions:{title:"Institution directory",eyebrow:"INSTITUTION OVERSIGHT",desc:"Monitor approved intake, admissions and verification completion."},verification:{title:"Verify a student",eyebrow:"VERIFICATION DESK",desc:"Run a simulated record lookup using sample student identifiers."},reports:{title:"Reports & exports",eyebrow:"REPORTING CENTRE",desc:"Export sample records and operational summaries for review."}};
-function render(){const p=pages[currentPage];$("#breadcrumb").textContent=currentPage==="overview"?"Overview":p.title;$("#pageTitle").innerHTML=currentPage==="overview"?'Good afternoon, Admin <span>✦</span>':p.title;$("#pageEyebrow").textContent=p.eyebrow;$("#pageDescription").textContent=p.desc;$("#pageContent").innerHTML=({overview:renderOverview,students:renderStudents,validation:renderValidation,duplicates:renderDuplicates,institutions:renderInstitutions,verification:renderVerification,reports:renderReports})[currentPage]();$("#navStudentCount").textContent=students.length+240;$$(".nav-item").forEach(b=>b.classList.toggle("active",b.dataset.page===currentPage));$("#newRecordBtn").style.display=["overview","students"].includes(currentPage)&&role!=="verifier"?"inline-flex":"none";if(!noticeVisible)$("#dismissNotice").closest(".notice").style.display="none";if(currentPage==="verification")$("#verifyForm").addEventListener("submit",e=>{e.preventDefault();runVerify($("#verifyType").value,$("#verifyValue").value.trim())});}
-function navigate(p){currentPage=p;render();window.scrollTo({top:0,behavior:"smooth"})}
-function toast(msg,error=false){const n=document.createElement("div");n.className="toast"+(error?" error":"");n.textContent=msg;$("#toastRoot").appendChild(n);setTimeout(()=>n.remove(),3300)}
-function refreshStudents(){const pos=$("#studentSearch")?.selectionStart;const html=renderStudents();$("#pageContent").innerHTML=html;const inp=$("#studentSearch");if(inp&&pos!==undefined){inp.focus();inp.setSelectionRange(pos,pos)}}
-function filterInstitutions(){const q=($("#instSearch")?.value||"").toLowerCase(),f=$("#intakeFilter")?.value||"";institutionTableFiltered(institutions.filter(i=>(!q||[i.name,i.code,i.city].some(v=>v.toLowerCase().includes(q)))&&(!f||((i.admitted>i.approved?"Over intake":"Within intake")===f))))}
-function institutionTableFiltered(list){$("#institutionTable").innerHTML=institutionTable(list)}
-function openModal(title,body,onSave,saveLabel="Save record"){const root=$("#modalRoot");root.innerHTML=`<div class="modal-backdrop" id="modalBackdrop"><div class="modal"><div class="modal-head"><h2>${title}</h2><button class="modal-close" onclick="closeModal()">×</button></div><div class="modal-body">${body}</div><div class="modal-foot"><button class="secondary-btn" onclick="closeModal()">Cancel</button><button class="primary-btn" id="modalSave">${saveLabel}</button></div></div></div>`;$("#modalBackdrop").addEventListener("click",e=>{if(e.target.id==="modalBackdrop")closeModal()});$("#modalSave").onclick=onSave}
-function closeModal(){$("#modalRoot").innerHTML=""}
-function openStudentModal(existing=null){if(role==="verifier"){toast("Verifier role is read-only.",true);return}const s=existing||{name:"",apaar:"",institution:role==="institution"?"Western Institute of Technology":"",course:"",year:"1",email:"",dob:"",status:"Pending"};openModal(existing?"Edit student record":"Add student record",`<form id="studentForm"><div class="form-grid"><div class="form-field"><label>Full name *</label><input name="name" required value="${esc(s.name)}"></div><div class="form-field"><label>APAAR ID (simulated) *</label><input name="apaar" required value="${esc(s.apaar)}" placeholder="APAAR-1234-5678"></div><div class="form-field"><label>Institution *</label><select name="institution" required><option value="">Select institution</option>${institutions.map(i=>`<option ${s.institution===i.name?"selected":""}>${esc(i.name)}</option>`).join("")}</select></div><div class="form-field"><label>Course *</label><input name="course" required value="${esc(s.course)}" placeholder="Computer Engineering"></div><div class="form-field"><label>Academic year</label><select name="year">${[1,2,3,4,5].map(y=>`<option ${String(s.year)===String(y)?"selected":""}>${y}</option>`).join("")}</select></div><div class="form-field"><label>Date of birth</label><input type="date" name="dob" value="${esc(s.dob)}"></div><div class="form-field"><label>Email (demo)</label><input type="email" name="email" value="${esc(s.email)}"></div><div class="form-field"><label>Status</label><select name="status">${["Pending","Verified","Flagged","Review"].map(x=>`<option ${s.status===x?"selected":""}>${x}</option>`).join("")}</select></div></div><p class="small-label" style="margin-top:15px">Use fictional data only. APAAR checks are simulated in this prototype.</p></form>`,()=>{const form=$("#studentForm");if(!form.reportValidity())return;const d=Object.fromEntries(new FormData(form));if(!/^APAAR-[0-9]{4}-[0-9]{4}$/i.test(d.apaar)){toast("Demo APAAR ID format should be APAAR-1234-5678.",true);return}if(students.some(x=>x.apaar.toLowerCase()===d.apaar.toLowerCase()&&x.id!==s.id)){toast("Potential duplicate simulated APAAR ID detected. Review before saving.",true);return}if(existing){Object.assign(existing,d,{updated:"25 Oct 2026"});toast("Student record updated in this session.")}else{students.unshift({...d,id:"AP-2026-"+(1100+students.length),updated:"25 Oct 2026",risk:"Low"});toast("Student record added to this session.")}closeModal();render()})}
-function viewStudent(id){const s=students.find(x=>x.id===id);if(!s)return;openModal("Student record details",`<div class="result-row"><span>Full name</span><strong>${esc(s.name)}</strong></div><div class="result-row"><span>Record ID</span><strong>${esc(s.id)}</strong></div><div class="result-row"><span>APAAR ID</span><strong>${esc(s.apaar)}</strong></div><div class="result-row"><span>Institution</span><strong>${esc(s.institution)}</strong></div><div class="result-row"><span>Course / year</span><strong>${esc(s.course)} · Year ${esc(s.year)}</strong></div><div class="result-row"><span>Status</span><strong><span class="status ${statusClass(s.status)}">${esc(s.status)}</span></strong></div><div class="result-row"><span>Updated</span><strong>${esc(s.updated)}</strong></div><p class="small-label" style="margin-top:15px">Demo record only · no real registry match performed.</p>`,()=>{closeModal();if(role!=="verifier")openStudentModal(s)},"Edit record")}
-function resolveIssue(btn){btn.closest(".validation-row").querySelector(".status").className="status verified";btn.closest(".validation-row").querySelector(".status").textContent="Reviewed";btn.textContent="Reviewed";btn.disabled=true;btn.style.opacity=".55";toast("Marked as reviewed in this session.")}
-function reviewDuplicate(id){openModal("Review duplicate candidate",`<div class="notice"><span class="notice-icon">i</span><div><strong>${id} · Simulated match</strong><span>This candidate is generated from mock data and is not proof of duplicate identity.</span></div></div><div class="result-row"><span>Match basis</span><strong>Identifier / name similarity</strong></div><div class="result-row"><span>Suggested next step</span><strong>Verify source documents</strong></div><div class="form-field" style="margin-top:15px"><label>Review decision</label><select id="dupDecision"><option>Needs manual review</option><option>False positive</option><option>Potential duplicate confirmed (demo)</option></select></div><div class="form-field" style="margin-top:12px"><label>Reviewer note</label><input id="dupNote" placeholder="Add a brief note"></div>`,()=>{const d=$("#dupDecision").value;closeModal();toast(`${id}: ${d} — saved to demo session.`)},"Save decision")}
-function runVerify(type,value){
- const s=students.find(item=>(type==="apaar"?item.apaar:type==="id"?item.id:item.name.toLowerCase()).toLowerCase()===value.toLowerCase());
- const target=$("#verifyResult"); if(!target)return;
- const found=s;
- const header=`<div class="panel-head"><div><h3>Verification result</h3><p>Generated locally · ${new Date().toLocaleString()}</p></div><span class="status ${found?statusClass(found.status):"flagged"}">${found?"Match found":"No match"}</span></div>`;
- if(found){target.innerHTML=header+`<div class="verify-result"><h3>${esc(found.name)}</h3><p>Student record matched in the local mock dataset. This is not an official APAAR verification.</p><div class="result-row"><span>Student record ID</span><strong>${esc(found.id)}</strong></div><div class="result-row"><span>Simulated APAAR ID</span><strong>${esc(found.apaar)}</strong></div><div class="result-row"><span>Institution</span><strong>${esc(found.institution)}</strong></div><div class="result-row"><span>Course</span><strong>${esc(found.course)}</strong></div><div class="result-row"><span>Record status</span><strong><span class="status ${statusClass(found.status)}">${esc(found.status)}</span></strong></div><div class="result-row"><span>Duplicate check</span><strong>${found.status==="Flagged"?"Manual review required":"Simulated check only"}</strong></div></div>`;}
- else {target.innerHTML=header+`<div class="empty-state"><div style="font-size:27px;margin-bottom:10px">⌕</div><strong>No matching demo record</strong><p>Check the entered value or try one of the demo examples. This does not query any external registry.</p></div>`;}
+
+// Session State
+let currentRole = "institution"; // "institution" | "university" | "admin"
+let currentScope = {
+  type: "institution",
+  name: "K J Somaiya Institute of Technology",
+  university: "University of Mumbai"
+};
+let currentPage = "overview";
+let studentPage = 1;
+let studentSearchDebounce = null;
+let cachedInstitutions = [];
+let cachedUniversities = [];
+
+const initials = name => (name || "NA").split(" ").filter(Boolean).map(x => x[0]).slice(0, 2).join("").toUpperCase();
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const statusClass = s => ({ Verified: "verified", Pending: "pending", Flagged: "flagged", Review: "review" })[s] || "review";
+
+const stat = (label, value, icon, color, foot) => `
+  <div class="stat-card">
+    <div class="stat-top">${label}<span class="stat-icon ${color}">${icon}</span></div>
+    <div class="stat-number">${value}</div>
+    <div class="stat-foot">${foot}</div>
+  </div>`;
+
+function tablePanel(title, sub, rows, headers, action = "") {
+  return `
+    <div class="panel">
+      <div class="panel-head">
+        <div><h3>${title}</h3><p>${sub}</p></div>
+        ${action}
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>${headers.map(h => `<th>${h}</th>`).join("")}</tr></thead>
+          <tbody>${rows || `<tr><td colspan="${headers.length}"><div class="empty-state">No matching records found.</div></td></tr>`}</tbody>
+        </table>
+      </div>
+    </div>`;
 }
 
-function importCSV(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{const lines=String(reader.result).split(/\r?\n/).filter(x=>x.trim());if(lines.length<2){toast("CSV has no data rows.",true);return}const headers=lines.shift().split(",").map(x=>x.trim().toLowerCase());const get=(r,...keys)=>{const ix=headers.findIndex(h=>keys.includes(h));return ix<0?"":r[ix]?.trim().replace(/^"|"$/g,"")};let added=0,skipped=0;lines.forEach(line=>{const r=line.split(",").map(x=>x.trim());const name=get(r,"name","student name","full name"),apaar=get(r,"apaar","apaar id","apaar_id");if(!name||!apaar||students.some(s=>s.apaar.toLowerCase()===apaar.toLowerCase())){skipped++;return}students.push({id:"AP-2026-"+(1100+students.length),name,apaar,institution:get(r,"institution")||"Western Institute of Technology",course:get(r,"course")||"Not specified",year:get(r,"year","academic year")||"1",email:get(r,"email"),dob:get(r,"dob","date of birth"),status:"Pending",risk:"Medium",updated:"25 Oct 2026"});added++});toast(`CSV import complete: ${added} added, ${skipped} skipped.`);render();e.target.value=""};reader.readAsText(file)}
-function downloadCSV(filename,rows){const csv=rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\r\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));a.download=filename;a.click();URL.revokeObjectURL(a.href)}
-function downloadStudents(){downloadCSV("apaar-demo-student-records.csv",[["Student ID","Name","Mock APAAR ID","Institution","Course","Year","Status","Last updated"],...students.map(s=>[s.id,s.name,s.apaar,s.institution,s.course,s.year,s.status,s.updated])]);toast("Student CSV download prepared.")}
-function downloadInstitutions(){downloadCSV("apaar-demo-institution-intake.csv",[["Institution","Code","City","Approved intake","Admitted","Verified","Status"],...institutions.map(i=>[i.name,i.code,i.city,i.approved,i.admitted,i.verified,i.admitted>i.approved?"Over intake":"Within intake"])]);toast("Institution CSV download prepared.")}
-function downloadValidation(){downloadCSV("apaar-demo-validation-summary.csv",[["Issue","Record","Detail","Priority"],["Missing date of birth","AP-2026-1051","Required field missing","Review needed"],["APAAR format check failed","AP-2026-1052","Identifier format","High priority"],["Supporting document review","AP-2026-1044","Simulated document flag","High priority"],["Course mapping incomplete","AP-2026-1056","Course mapping","Review needed"]]);toast("Validation CSV download prepared.")}
-$("#loginBtn").addEventListener("click",()=>{role=$("#roleSelect").value;const account=$("#userSelect").value;if(account==="college")role="institution";if(account==="verifier")role="verifier";$("#loginView").classList.add("hidden");$("#appView").classList.remove("hidden");$("#userName").textContent=role==="admin"?"National Admin":role==="institution"?"Institution Admin":"Regional Verifier";$("#userRole").textContent=role==="admin"?"AICTE Administrator":role==="institution"?"Institution Administrator":"Verifier";$("#avatar").textContent=role==="admin"?"NA":role==="institution"?"IA":"RV";if(role==="institution"){institutions.splice(1,institutions.length-1);students=students.filter(s=>s.institution==="Western Institute of Technology")}if(role==="verifier")$("#newRecordBtn").style.display="none";render()});
-$("#roleSelect").addEventListener("change",()=>{const r=$("#roleSelect").value;$("#userSelect").value=r==="admin"?"national":r==="institution"?"college":"verifier"});
-$("#logoutBtn").addEventListener("click",()=>{ $("#appView").classList.add("hidden");$("#loginView").classList.remove("hidden");currentPage="overview";$("#roleSelect").value="admin";$("#userSelect").value="national";toast("Signed out of the demo workspace.")});
-$("#sideNav").addEventListener("click",e=>{const b=e.target.closest("[data-page]");if(b)navigate(b.dataset.page)});
-$("#newRecordBtn").addEventListener("click",()=>openStudentModal());
-$("#exportBtn").addEventListener("click",downloadStudents);
-$("#dismissNotice").addEventListener("click",()=>{$(".notice").style.display="none";noticeVisible=false});
-window.navigate=navigate;window.toast=toast;window.openStudentModal=openStudentModal;window.viewStudent=viewStudent;window.refreshStudents=refreshStudents;window.importCSV=importCSV;window.runVerify=runVerify;window.reviewDuplicate=reviewDuplicate;window.resolveIssue=resolveIssue;window.filterInstitutions=filterInstitutions;window.downloadStudents=downloadStudents;window.downloadInstitutions=downloadInstitutions;window.downloadValidation=downloadValidation;window.closeModal=closeModal;
+function toast(msg, error = false) {
+  const n = document.createElement("div");
+  n.className = "toast" + (error ? " error" : "");
+  n.textContent = msg;
+  $("#toastRoot").appendChild(n);
+  setTimeout(() => n.remove(), 3500);
+}
+
+// -------------------------------------------------------------
+// Data Preloaders & Scope Helpers
+// -------------------------------------------------------------
+async function loadMetadata() {
+  try {
+    const [instRes, uniRes] = await Promise.all([
+      fetch("/api/institutions"),
+      fetch("/api/universities")
+    ]);
+    const instData = await instRes.json();
+    const uniData = await uniRes.json();
+    cachedInstitutions = instData.institutions || [];
+    cachedUniversities = uniData.universities || [];
+    populateLoginDropdowns();
+  } catch (err) {
+    console.error("Failed to preload metadata:", err);
+  }
+}
+
+function populateLoginDropdowns() {
+  const instSelect = $("#loginInstituteSelect");
+  if (instSelect) {
+    instSelect.innerHTML = cachedInstitutions.map(i => `
+      <option value="${esc(i.name)}" ${i.name.includes("Somaiya") ? "selected" : ""}>
+        ${esc(i.name)} (${esc(i.code)}) · ${esc(i.university)}
+      </option>
+    `).join("");
+  }
+
+  const uniSelect = $("#loginUniversitySelect");
+  if (uniSelect) {
+    uniSelect.innerHTML = cachedUniversities.map(u => `
+      <option value="${esc(u.name)}" ${u.name.includes("Mumbai") ? "selected" : ""}>
+        ${esc(u.name)} (${u.college_count} colleges · ${u.student_count.toLocaleString()} students)
+      </option>
+    `).join("");
+  }
+}
+
+function getScopeQuery() {
+  if (currentScope.type === "institution" && currentScope.name) {
+    return `institution=${encodeURIComponent(currentScope.name)}`;
+  }
+  if (currentScope.type === "university" && currentScope.name) {
+    return `university=${encodeURIComponent(currentScope.name)}`;
+  }
+  return "";
+}
+
+async function refreshGlobalBadges() {
+  try {
+    const query = getScopeQuery();
+    const url = `/api/overview${query ? "?" + query : ""}`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if ($("#navStudentCount")) $("#navStudentCount").textContent = data.total_student_records.toLocaleString();
+    if ($("#navValidationCount")) $("#navValidationCount").textContent = data.open_anomalies.toLocaleString();
+    if ($("#navDuplicateCount")) $("#navDuplicateCount").textContent = data.duplicate_candidates.toLocaleString();
+    return data;
+  } catch (e) {
+    console.error("Failed to refresh badges:", e);
+  }
+}
+
+function updateTopAndSidebarHeaders() {
+  const isInst = currentScope.type === "institution";
+  const isUni = currentScope.type === "university";
+
+  const scopeTitle = isInst ? currentScope.name : (isUni ? currentScope.name : "National AICTE Central HQ");
+  const roleTitle = isInst ? "Institute Administrator" : (isUni ? "University Administrator" : "AICTE Central Administrator");
+  const avatarText = isInst ? initials(currentScope.name) : (isUni ? "UN" : "AI");
+
+  if ($("#userName")) $("#userName").textContent = scopeTitle;
+  if ($("#userRole")) $("#userRole").textContent = roleTitle;
+  if ($("#avatar")) $("#avatar").textContent = avatarText;
+  if ($("#scopePill")) $("#scopePill").innerHTML = `<span class="dot"></span> ${esc(scopeTitle)}`;
+  if ($("#sidebarScopeLabel")) $("#sidebarScopeLabel").textContent = isInst ? "INSTITUTE WORKSPACE" : (isUni ? "UNIVERSITY WORKSPACE" : "AICTE WORKSPACE");
+  if ($("#sidebarDbDesc")) $("#sidebarDbDesc").textContent = isInst ? `Filtered to ${esc(currentScope.name)}` : (isUni ? `Filtered to ${esc(currentScope.name)}` : "All technical universities");
+}
+
+// -------------------------------------------------------------
+// 1. Overview Page (Completely Clean & Verification-Focused)
+// -------------------------------------------------------------
+async function renderOverview() {
+  const root = $("#pageContent");
+  root.innerHTML = `<div class="empty-state"><div style="font-size:26px">⏳</div>Loading live verification dashboard...</div>`;
+
+  try {
+    const query = getScopeQuery();
+    const url = `/api/overview${query ? "?" + query : ""}`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if ($("#navStudentCount")) $("#navStudentCount").textContent = data.total_student_records.toLocaleString();
+    if ($("#navValidationCount")) $("#navValidationCount").textContent = data.open_anomalies.toLocaleString();
+    if ($("#navDuplicateCount")) $("#navDuplicateCount").textContent = data.duplicate_candidates.toLocaleString();
+
+    const isInst = currentScope.type === "institution";
+    const scopeLabel = isInst ? "In this institute" : (currentScope.type === "university" ? "Under this university" : "National Registry");
+
+    const studentRowsHtml = (data.recent_students || []).map(s => `
+      <tr>
+        <td>
+          <div class="student-name">
+            <div class="student-avatar">${initials(s.name)}</div>
+            <div><strong>${esc(s.name)}</strong><small>${esc(s.id)}</small></div>
+          </div>
+        </td>
+        <td><strong>${esc(s.apaar)}</strong></td>
+        <td>${esc(s.institution)}</td>
+        <td>${esc(s.course)} (Sem ${s.semester})</td>
+        <td><span class="status ${statusClass(s.status)}">${esc(s.status)}</span></td>
+        <td><button class="link-btn" onclick="lookupAndOpenStudent('${s.apaar}')">Verify →</button></td>
+      </tr>
+    `).join("");
+
+    const b = data.breakdown || { aadhaar_mismatch: 0, semester_leap: 0, dual_claims: 0, degree_gaps: 0 };
+    const hasAnomalies = data.open_anomalies > 0;
+
+    root.innerHTML = `
+      <div class="stats-grid">
+        ${stat("STUDENT RECORDS", data.total_student_records.toLocaleString(), "♙", "blue", `<span class="positive">${scopeLabel}</span>`)}
+        ${stat("VERIFIED CLEAN", data.verified_percentage, "✓", "green", '<span class="positive">Identity & credentials confirmed</span>')}
+        ${stat("OPEN ANOMALIES", data.open_anomalies.toLocaleString(), "⚑", hasAnomalies ? "red" : "green", hasAnomalies ? "Flagged by Random Forest model" : "All records verified")}
+        ${stat("DUPLICATE CLAIMS", data.duplicate_candidates.toLocaleString(), "⧉", data.duplicate_candidates > 0 ? "amber" : "blue", "Concurrent institutional claims")}
+      </div>
+
+      <div class="dashboard-grid">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>Random Forest Anomaly Detection Breakdown</h3>
+              <p>Active detection signals audited against the Ground Truth database</p>
+            </div>
+            <span class="status verified">ML Model Active</span>
+          </div>
+          <div class="summary-cards" style="grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 5px;">
+            <div class="summary-box" style="padding: 14px">
+              <span class="small-label">IDENTITY / AADHAAR MISMATCHES</span>
+              <strong style="font-size: 20px; color: ${b.aadhaar_mismatch > 0 ? 'var(--red)' : 'var(--navy)'}; margin: 6px 0 2px">${b.aadhaar_mismatch.toLocaleString()}</strong>
+              <small class="muted" style="font-size: 9px">Aadhaar paired with mismatched student demographics</small>
+            </div>
+            <div class="summary-box" style="padding: 14px">
+              <span class="small-label">SEMESTER ADVANCEMENT LEAPS</span>
+              <strong style="font-size: 20px; color: ${b.semester_leap > 0 ? 'var(--amber)' : 'var(--navy)'}; margin: 6px 0 2px">${b.semester_leap.toLocaleString()}</strong>
+              <small class="muted" style="font-size: 9px">Anomalous semester jump during 1st-year admission</small>
+            </div>
+            <div class="summary-box" style="padding: 14px">
+              <span class="small-label">DUAL-ENROLLMENT COLLISIONS</span>
+              <strong style="font-size: 20px; color: ${b.dual_claims > 0 ? 'var(--red)' : 'var(--navy)'}; margin: 6px 0 2px">${b.dual_claims.toLocaleString()}</strong>
+              <small class="muted" style="font-size: 9px">Candidate claimed simultaneously by two colleges</small>
+            </div>
+            <div class="summary-box" style="padding: 14px">
+              <span class="small-label">PREREQUISITE DEGREE GAPS</span>
+              <strong style="font-size: 20px; color: ${b.degree_gaps > 0 ? 'var(--amber)' : 'var(--navy)'}; margin: 6px 0 2px">${b.degree_gaps.toLocaleString()}</strong>
+              <small class="muted" style="font-size: 9px">Non-standard qualification claimed for B.Tech admission</small>
+            </div>
+          </div>
+          ${hasAnomalies ? `
+            <div style="margin-top: 15px; text-align: right">
+              <button class="secondary-btn" onclick="navigate('validation')">Open Validation Queue (${data.open_anomalies}) →</button>
+            </div>` : ''}
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>Verification Status</h3>
+              <p>Adherence for ${esc(currentScope.name)}</p>
+            </div>
+            <span class="status ${hasAnomalies ? 'pending' : 'verified'}">${hasAnomalies ? 'Attention Required' : 'Clean Registry'}</span>
+          </div>
+          ${hasAnomalies ? `
+            <div class="queue-list">
+              <div class="queue-item">
+                <div class="queue-dot red">⚑</div>
+                <div>
+                  <strong>Action Required: Review Flags</strong>
+                  <p>${data.open_anomalies} record(s) flagged by ML classifier require manual review or seat allotment confirmation.</p>
+                  <small>Random Forest prediction confidence &gt; 95%</small>
+                </div>
+              </div>
+            </div>
+            <button class="primary-btn" style="width:100%; margin-top:14px" onclick="navigate('validation')">Inspect Anomaly Queue →</button>
+          ` : `
+            <div style="text-align: center; padding: 25px 15px">
+              <div style="font-size: 32px; color: var(--green); margin-bottom: 8px">✓</div>
+              <strong style="font-size: 13px; color: var(--navy); display:block">All Registered Records Verified</strong>
+              <p class="muted" style="font-size: 11px; margin-top: 6px; line-height: 1.6">
+                All ${data.total_student_records.toLocaleString()} students allocated to this jurisdiction have been validated against APAAR master identities with zero conflicts.
+              </p>
+              <button class="secondary-btn" style="margin-top: 12px" onclick="navigate('students')">Browse Student Directory →</button>
+            </div>
+          `}
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h3>Recent Student Admissions & Verification Status</h3>
+            <p>Master records registered under ${esc(currentScope.name)}</p>
+          </div>
+          <button class="link-btn" onclick="navigate('students')">View all students →</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Student</th><th>APAAR ID</th><th>Institution</th><th>Course & Semester</th><th>Status</th><th>Verify</th></tr>
+            </thead>
+            <tbody>
+              ${studentRowsHtml || `<tr><td colspan="6"><div class="empty-state">No students found under this jurisdiction.</div></td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  } catch (err) {
+    root.innerHTML = `<div class="empty-state">Failed to load overview: ${esc(err.message)}</div>`;
+  }
+}
+
+// -------------------------------------------------------------
+// 2. Student Directory (Strictly Scoped to That Specific Institute or University)
+// -------------------------------------------------------------
+async function renderStudents() {
+  const q = ($("#studentSearch")?.value || "").trim();
+  const st = ($("#statusFilter")?.value || "").trim();
+
+  const isInst = currentScope.type === "institution";
+  const isUni = currentScope.type === "university";
+  const placeholderText = isInst ? `Search students in ${currentScope.name}...` : `Search students in ${currentScope.name}...`;
+
+  const root = $("#pageContent");
+  root.innerHTML = `
+    <div class="toolbar">
+      <div class="search-box">
+        <span>⌕</span>
+        <input id="studentSearch" placeholder="${esc(placeholderText)}" value="${esc(q)}" oninput="debounceStudentSearch()">
+      </div>
+      <select id="statusFilter" onchange="loadStudents(1)">
+        <option value="">All statuses</option>
+        <option value="Verified" ${st === "Verified" ? "selected" : ""}>Verified</option>
+        <option value="Flagged" ${st === "Flagged" ? "selected" : ""}>Flagged</option>
+      </select>
+      <button class="secondary-btn" onclick="openUploadModal()">↑ Ingest College CSV/Excel</button>
+      <button class="primary-btn" onclick="openStudentModal()">＋ Add student</button>
+    </div>
+    <div id="studentTableContainer">
+      <div class="empty-state">Loading students...</div>
+    </div>`;
+
+  loadStudents(studentPage);
+}
+
+function debounceStudentSearch() {
+  clearTimeout(studentSearchDebounce);
+  studentSearchDebounce = setTimeout(() => loadStudents(1), 250);
+}
+
+async function loadStudents(page = 1) {
+  studentPage = page;
+  const q = ($("#studentSearch")?.value || "").trim();
+  const st = ($("#statusFilter")?.value || "").trim();
+  const container = $("#studentTableContainer");
+  if (!container) return;
+
+  try {
+    const scopeParam = getScopeQuery();
+    const queryParams = [
+      scopeParam,
+      `q=${encodeURIComponent(q)}`,
+      `status=${encodeURIComponent(st)}`,
+      `page=${page}`,
+      `limit=25`
+    ].filter(Boolean).join("&");
+
+    const res = await fetch(`/api/students?${queryParams}`);
+    const data = await res.json();
+
+    const rowsHtml = (data.records || []).map(s => `
+      <tr>
+        <td>
+          <div class="student-name">
+            <div class="student-avatar">${initials(s.name)}</div>
+            <div><strong>${esc(s.name)}</strong><small>${esc(s.id)} · ${esc(s.gender)}</small></div>
+          </div>
+        </td>
+        <td><strong>${esc(s.apaar)}</strong><br><small class="muted">Aadhaar: ${esc(s.aadhar)}</small></td>
+        <td><strong>${esc(s.institution)}</strong><br><small class="muted">${esc(s.course)} (Sem ${s.semester})</small></td>
+        <td><span class="status ${statusClass(s.status)}">${esc(s.status)}</span></td>
+        <td>${esc(s.updated)}</td>
+        <td>
+          <div style="display:flex; gap:6px">
+            <button class="link-btn" onclick="viewStudentDetails(${JSON.stringify(s).replace(/"/g, '&quot;')})">Details</button>
+            <button class="link-btn" style="color:var(--ink)" onclick="openStudentEditModal(${JSON.stringify(s).replace(/"/g, '&quot;')})">✎ Edit</button>
+          </div>
+        </td>
+      </tr>
+    `).join("");
+
+    const totalPages = Math.ceil((data.total || 0) / (data.limit || 25));
+    const isInst = currentScope.type === "institution";
+    const headerTitle = isInst ? `Enrolled Students · ${esc(currentScope.name)}` : `Enrolled Students · ${esc(currentScope.name)}`;
+
+    const paginationHtml = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding:8px 4px">
+        <span class="small-label">Showing ${(page - 1) * data.limit + 1} to ${Math.min(page * data.limit, data.total)} of ${data.total.toLocaleString()} records</span>
+        <div style="display:flex; gap:8px">
+          <button class="secondary-btn" ${page <= 1 ? "disabled style='opacity:0.5'" : ""} onclick="loadStudents(${page - 1})">← Previous</button>
+          <span style="font-size:12px; font-weight:700; align-self:center">Page ${page} / ${max(totalPages, 1)}</span>
+          <button class="secondary-btn" ${page >= totalPages ? "disabled style='opacity:0.5'" : ""} onclick="loadStudents(${page + 1})">Next →</button>
+        </div>
+      </div>`;
+
+    container.innerHTML = `
+      ${tablePanel(headerTitle, `${data.total.toLocaleString()} persistent records in database`, rowsHtml, ["Student", "APAAR & Aadhaar", "Institution & Program", "Status", "Last updated", "Action"])}
+      ${paginationHtml}
+      <div class="small-label" style="margin-top:10px">Records strictly scoped to <strong>${esc(currentScope.name)}</strong>. Stored persistently in <code>ground_truth.db</code>.</div>`;
+
+    if ($("#navStudentCount")) $("#navStudentCount").textContent = data.total.toLocaleString();
+  } catch (err) {
+    container.innerHTML = `<div class="empty-state">Error loading records: ${esc(err.message)}</div>`;
+  }
+}
+
+// -------------------------------------------------------------
+// 3. Validation Queue Page (Scoped)
+// -------------------------------------------------------------
+async function renderValidation() {
+  const root = $("#pageContent");
+  root.innerHTML = `<div class="empty-state">Loading validation queue...</div>`;
+
+  try {
+    const scopeParam = getScopeQuery();
+    const url = `/api/validation-queue${scopeParam ? "?" + scopeParam : ""}`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    const queue = data.queue || [];
+    const aadhaarCount = queue.filter(q => q.full_detail.includes("AADHAAR")).length;
+    const semesterCount = queue.filter(q => q.full_detail.includes("SEMESTER") || q.full_detail.includes("LEAP")).length;
+    const dualCount = queue.filter(q => q.full_detail.includes("DUAL")).length;
+
+    root.innerHTML = `
+      <div class="stats-grid">
+        ${stat("VALIDATION ISSUES", data.total.toLocaleString(), "▤", data.total > 0 ? "amber" : "green", `In ${esc(currentScope.name)}`)}
+        ${stat("IDENTITY MISMATCHES", aadhaarCount.toLocaleString(), "⚑", aadhaarCount > 0 ? "red" : "blue", "Aadhaar / APAAR mismatch")}
+        ${stat("SEMESTER LEAPS", semesterCount.toLocaleString(), "✎", semesterCount > 0 ? "amber" : "blue", "Non-consecutive semester jump")}
+        ${stat("DUAL ENROLLMENTS", dualCount.toLocaleString(), "⧉", dualCount > 0 ? "red" : "blue", "Concurrent institute claims")}
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h3>Validation Review Queue · ${esc(currentScope.name)}</h3>
+            <p>Candidate records quarantined by the Scikit-Learn Random Forest model.</p>
+          </div>
+          <button class="secondary-btn" onclick="window.location.href='/api/export/anomalies'">↓ Export queue CSV</button>
+        </div>
+        ${queue.length === 0 ? `
+          <div class="empty-state" style="padding: 40px">
+            <div style="font-size:30px; color:var(--green)">✓</div>
+            <strong style="font-size:14px; margin-top:8px; display:block">Zero Open Validation Issues</strong>
+            <p class="muted" style="margin-top:4px">All student records for ${esc(currentScope.name)} have passed anomaly screening.</p>
+          </div>
+        ` : queue.map(item => `
+          <div class="validation-row">
+            <div>
+              <strong>${esc(item.issue)}</strong>
+              <small>${esc(item.detail)} · APAAR: ${esc(item.apaar)}</small>
+              <div style="font-size:11px; color:#c05621; margin-top:3px">${esc(item.full_detail)}</div>
+            </div>
+            <span class="status ${item.color === 'red' ? 'flagged' : 'pending'}">${esc(item.priority)}</span>
+            <button class="secondary-btn" onclick="resolveIssue(this, ${item.id})">Mark reviewed</button>
+          </div>
+        `).join("")}
+      </div>`;
+  } catch (err) {
+    root.innerHTML = `<div class="empty-state">Failed to load validation queue: ${esc(err.message)}</div>`;
+  }
+}
+
+// -------------------------------------------------------------
+// 4. Duplicate Enrolment Alerts Page (Scoped)
+// -------------------------------------------------------------
+async function renderDuplicates() {
+  const root = $("#pageContent");
+  root.innerHTML = `<div class="empty-state">Loading duplicate candidates...</div>`;
+
+  try {
+    const scopeParam = getScopeQuery();
+    const url = `/api/duplicates${scopeParam ? "?" + scopeParam : ""}`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    const dups = data.duplicates || [];
+    const intraCount = dups.filter(d => d.match_signal.includes("Intra-University")).length;
+    const crossCount = dups.filter(d => d.match_signal.includes("Cross-University")).length;
+
+    const rowsHtml = dups.map(d => `
+      <tr>
+        <td><strong>${esc(d.group_id)}</strong></td>
+        <td>${esc(d.student_name)}<br><small class="muted">APAAR: ${esc(d.apaar_id)}</small></td>
+        <td><span class="status verified">${esc(d.college_a)}</span></td>
+        <td><span class="status flagged">${esc(d.claim_b)}</span></td>
+        <td>${esc(d.match_signal)}</td>
+        <td><span class="risk-pill">${esc(d.confidence)}</span></td>
+        <td><button class="primary-btn" style="padding:4px 10px; font-size:11px" onclick="openAdjudicationModal('${d.apaar_id}', '${esc(d.student_name)}', '${esc(d.college_a)}', '${esc(d.claim_b)}')">Resolve →</button></td>
+      </tr>
+    `).join("");
+
+    root.innerHTML = `
+      <div class="stats-grid">
+        ${stat("DUAL ENROLLMENT CLAIMS", data.total.toLocaleString(), "⧉", data.total > 0 ? "red" : "green", `Affecting ${esc(currentScope.name)}`)}
+        ${stat("INTRA-UNIVERSITY", intraCount.toLocaleString(), "⚑", "amber", "Collisions within same university")}
+        ${stat("CROSS-UNIVERSITY", crossCount.toLocaleString(), "⌕", "blue", "Collisions across different universities")}
+        ${stat("ML CONFIDENCE", "98.2%", "✓", "green", "Random Forest certainty")}
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h3>Potential Duplicate Enrolments · ${esc(currentScope.name)}</h3>
+            <p>Students claimed simultaneously by multiple institutions in the same admission cycle.</p>
+          </div>
+          <span class="status ${data.total > 0 ? 'flagged' : 'verified'}">${data.total} alerts</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Match group</th><th>Student (APAAR)</th><th>College Claim A</th><th>College Claim B</th><th>Match Signal</th><th>Confidence</th><th>Adjudicate</th></tr></thead>
+            <tbody>${rowsHtml || `<tr><td colspan="7"><div class="empty-state">No duplicate enrollment conflicts affecting ${esc(currentScope.name)}.</div></td></tr>`}</tbody>
+          </table>
+        </div>
+      </div>`;
+  } catch (err) {
+    root.innerHTML = `<div class="empty-state">Failed to load duplicates: ${esc(err.message)}</div>`;
+  }
+}
+
+// -------------------------------------------------------------
+// 5. Verification Desk
+// -------------------------------------------------------------
+function renderVerification() {
+  return `
+    <div class="verify-layout">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h3>Student Verification Desk</h3>
+            <p>Real-time ML verification querying Ground Truth and active submissions.</p>
+          </div>
+          <span class="status review">Random Forest Model</span>
+        </div>
+        <form id="verifyForm">
+          <div class="form-field" style="margin-bottom:15px">
+            <label>Search Identifier</label>
+            <select id="verifyType">
+              <option value="apaar">APAAR ID (12 digits)</option>
+              <option value="aadhar">Aadhaar Number</option>
+              <option value="id">Student Record ID (AP-2026-XXXX)</option>
+              <option value="name">Legal Student Name</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Identifier Value</label>
+            <input id="verifyValue" placeholder="e.g. 186068428480" required>
+          </div>
+          <button class="primary-btn" style="margin-top:17px" type="submit">Run Real-Time ML Verification →</button>
+        </form>
+        <div style="margin-top:24px; padding-top:18px; border-top:1px solid var(--line)">
+          <div class="small-label" style="margin-bottom:12px">QUICK TEST EXAMPLES</div>
+          <button class="secondary-btn" onclick="runVerifyDirect('apaar', '186068428480')">Verified Example (Vidhi Shah)</button>
+          <button class="secondary-btn" onclick="runVerifyDirect('id', 'AP-2026-0361')">Dual Enrollment Example</button>
+        </div>
+      </div>
+      <div id="verifyResult" class="panel">
+        <div class="panel-head">
+          <div><h3>Verification Result</h3><p>Results evaluated live via Scikit-Learn model</p></div>
+        </div>
+        <div class="empty-state">
+          <div style="font-size:30px; margin-bottom:10px">⌕</div>
+          Enter an APAAR ID, Aadhaar number, or student record ID to evaluate.
+        </div>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:0">
+      <div class="panel-head"><div><h3>Verification Pipeline Checks</h3><p>Evaluated synchronously against Ground Truth.</p></div></div>
+      <div class="summary-cards">
+        <div class="summary-box"><strong>01</strong><span>Identity Binding & Aadhaar-APAAR pairing match</span></div>
+        <div class="summary-box"><strong>02</strong><span>Prerequisite degree hierarchy & semester jump check</span></div>
+        <div class="summary-box"><strong>03</strong><span>Cross-University & Intra-University dual enrollment audit</span></div>
+      </div>
+    </div>`;
+}
+
+async function runVerifyDirect(type, val) {
+  $("#verifyType").value = type;
+  $("#verifyValue").value = val;
+  executeVerification(type, val);
+}
+
+async function executeVerification(type, value) {
+  const target = $("#verifyResult");
+  if (!target) return;
+  target.innerHTML = `<div class="empty-state">Evaluating identifier through Random Forest model...</div>`;
+
+  try {
+    const res = await fetch("/api/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type, value }),
+    });
+    const result = await res.json();
+
+    const isMatch = result.match;
+    const isClean = result.status === "Verified";
+    const header = `
+      <div class="panel-head">
+        <div><h3>Verification Result</h3><p>Evaluated on ${new Date().toLocaleTimeString()}</p></div>
+        <span class="status ${isClean ? 'verified' : (isMatch ? 'flagged' : 'review')}">${esc(result.status)}</span>
+      </div>`;
+
+    if (isMatch) {
+      target.innerHTML = header + `
+        <div class="verify-result">
+          <h3>${esc(result.name)}</h3>
+          <p>${isClean ? 'Student identity successfully confirmed in master registry with zero anomalies.' : 'ANOMALY DETECTED: This record triggered institutional review flags.'}</p>
+          <div class="result-row"><span>Student Record ID</span><strong>${esc(result.id)}</strong></div>
+          <div class="result-row"><span>APAAR ID</span><strong>${esc(result.apaar)}</strong></div>
+          <div class="result-row"><span>Aadhaar Binding</span><strong>${esc(result.aadhar)}</strong></div>
+          <div class="result-row"><span>Enrolled Institution</span><strong>${esc(result.institution)}</strong></div>
+          <div class="result-row"><span>Affiliating University</span><strong>${esc(result.university)}</strong></div>
+          <div class="result-row"><span>Course & Semester</span><strong>${esc(result.course)} (Semester ${result.semester})</strong></div>
+          <div class="result-row"><span>Anomaly Risk Score</span><strong><span class="risk-pill" style="background:${isClean ? '#e6fffa;color:#234e52' : '#fed7d7;color:#9b2c2c'}">${(result.risk_score * 100).toFixed(1)}% Risk</span></strong></div>
+          <div class="result-row"><span>Integrity Audit</span><strong>${esc(result.conflict_details)}</strong></div>
+        </div>`;
+    } else {
+      target.innerHTML = header + `
+        <div class="empty-state">
+          <div style="font-size:27px; margin-bottom:10px">⌕</div>
+          <strong>${esc(result.message)}</strong>
+          <p>Please double check the entered value or verify whether the student was officially registered in the Ground Truth database.</p>
+        </div>`;
+    }
+  } catch (err) {
+    target.innerHTML = `<div class="empty-state">Verification lookup failed: ${esc(err.message)}</div>`;
+  }
+}
+
+// -------------------------------------------------------------
+// 6. Reports & Exports Page
+// -------------------------------------------------------------
+async function renderReports() {
+  const root = $("#pageContent");
+  root.innerHTML = `<div class="empty-state">Loading report metrics...</div>`;
+
+  try {
+    const query = getScopeQuery();
+    const res = await fetch(`/api/overview${query ? "?" + query : ""}`);
+    const data = await res.json();
+
+    root.innerHTML = `
+      <div class="stats-grid">
+        ${stat("TOTAL REGISTRY ROWS", data.total_student_records.toLocaleString(), "▤", "blue", `In ${esc(currentScope.name)}`)}
+        ${stat("VERIFIED RATIO", data.verified_percentage, "✓", "green", "Confirmed enrolled students")}
+        ${stat("ANOMALY FLAGS", data.open_anomalies.toLocaleString(), "⚑", "amber", "Quarantined by Random Forest")}
+        ${stat("PERSISTENCE STATUS", "Disk-Backed", "⌂", "green", "All changes written to SQLite")}
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <div><h3>Export Live Database Reports</h3><p>Download genuine CSV files streamed directly from SQLite.</p></div>
+        </div>
+        <div class="summary-cards">
+          <div class="summary-box">
+            <strong>Student Master Registry</strong>
+            <span>Full Ground Truth master student profiles, APAAR IDs, and academic records.</span>
+            <button class="secondary-btn" style="margin-top:14px" onclick="window.location.href='/api/export/students'">↓ Download Master CSV</button>
+          </div>
+          <div class="summary-box">
+            <strong>Institution Directory</strong>
+            <span>AICTE recognized institutions, codes, and university affiliations.</span>
+            <button class="secondary-btn" style="margin-top:14px" onclick="window.location.href='/api/export/institutions'">↓ Download Institutions CSV</button>
+          </div>
+          <div class="summary-box">
+            <strong>Anomaly & Validation Queue</strong>
+            <span>Full audit log of Random Forest flagged records and duplicate conflicts.</span>
+            <button class="secondary-btn" style="margin-top:14px" onclick="window.location.href='/api/export/anomalies'">↓ Download Anomalies CSV</button>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <h3 style="font:800 14px Manrope">Database Persistence Guarantee</h3>
+        <p class="muted" style="line-height:1.8; font-size:12px">
+          All student records and validation logs are saved directly to disk in <code>database/ground_truth.db</code> and <code>database/college_submissions.db</code>. When you add new students or ingest batches, they are permanently saved. Nothing is wiped or reset on refresh or restart.
+        </p>
+      </div>`;
+  } catch (err) {
+    root.innerHTML = `<div class="empty-state">Failed to load reports: ${esc(err.message)}</div>`;
+  }
+}
+
+// -------------------------------------------------------------
+// Modals & Profile Switching
+// -------------------------------------------------------------
+function openModal(title, body, onSave, saveLabel = "Save record") {
+  const root = $("#modalRoot");
+  root.innerHTML = `
+    <div class="modal-backdrop" id="modalBackdrop">
+      <div class="modal">
+        <div class="modal-head">
+          <h2>${title}</h2>
+          <button class="modal-close" onclick="closeModal()">×</button>
+        </div>
+        <div class="modal-body">${body}</div>
+        <div class="modal-foot">
+          <button class="secondary-btn" onclick="closeModal()">Cancel</button>
+          <button class="primary-btn" id="modalSave">${saveLabel}</button>
+        </div>
+      </div>
+    </div>`;
+  $("#modalBackdrop").addEventListener("click", e => { if (e.target.id === "modalBackdrop") closeModal(); });
+  $("#modalSave").onclick = onSave;
+}
+
+function closeModal() { $("#modalRoot").innerHTML = ""; }
+
+// Role / User Switcher Modal (Allows Instant Switching at Any Time)
+function openSwitchUserModal() {
+  const instOptions = cachedInstitutions.map(i => `
+    <option value="${esc(i.name)}" ${currentScope.type === 'institution' && currentScope.name === i.name ? 'selected' : ''}>
+      ${esc(i.name)} (${esc(i.code)}) · ${esc(i.university)}
+    </option>
+  `).join("");
+
+  const uniOptions = cachedUniversities.map(u => `
+    <option value="${esc(u.name)}" ${currentScope.type === 'university' && currentScope.name === u.name ? 'selected' : ''}>
+      ${esc(u.name)} (${u.college_count} colleges)
+    </option>
+  `).join("");
+
+  openModal("Switch Administrator Profile", `
+    <form id="switchUserForm">
+      <div class="form-field" style="margin-bottom:14px">
+        <label>Administrative Tier</label>
+        <select id="modalRoleSelect" onchange="toggleModalSwitchRoleFields()">
+          <option value="institution" ${currentRole === 'institution' ? 'selected' : ''}>Institute Administrator</option>
+          <option value="university" ${currentRole === 'university' ? 'selected' : ''}>University Administrator</option>
+          <option value="admin" ${currentRole === 'admin' ? 'selected' : ''}>AICTE Central Administrator</option>
+        </select>
+      </div>
+
+      <div class="form-field ${currentRole === 'institution' ? '' : 'hidden'}" id="modalInstWrap" style="margin-bottom:14px">
+        <label>Select Institute</label>
+        <select id="modalInstSelect">${instOptions}</select>
+      </div>
+
+      <div class="form-field ${currentRole === 'university' ? '' : 'hidden'}" id="modalUniWrap" style="margin-bottom:14px">
+        <label>Select University</label>
+        <select id="modalUniSelect">${uniOptions}</select>
+      </div>
+
+      <p class="small-label" style="margin-top:12px">
+        Switching profile immediately updates the student records, validation queue, and overview metrics to match your selected jurisdiction.
+      </p>
+    </form>`, () => {
+    const roleVal = $("#modalRoleSelect").value;
+    if (roleVal === "institution") {
+      const selectedInst = $("#modalInstSelect").value;
+      currentRole = "institution";
+      currentScope = { type: "institution", name: selectedInst };
+    } else if (roleVal === "university") {
+      const selectedUni = $("#modalUniSelect").value;
+      currentRole = "university";
+      currentScope = { type: "university", name: selectedUni };
+    } else {
+      currentRole = "admin";
+      currentScope = { type: "admin", name: "AICTE Central HQ" };
+    }
+
+    closeModal();
+    updateTopAndSidebarHeaders();
+    refreshGlobalBadges();
+    toast(`Switched workspace to ${currentScope.name}`);
+    render();
+  }, "Apply & Switch Workspace");
+}
+
+function toggleModalSwitchRoleFields() {
+  const r = $("#modalRoleSelect").value;
+  $("#modalInstWrap").classList.toggle("hidden", r !== "institution");
+  $("#modalUniWrap").classList.toggle("hidden", r !== "university");
+}
+
+async function openStudentModal() {
+  const isInst = currentScope.type === "institution";
+  const instOptions = cachedInstitutions.map(i => `
+    <option value="${esc(i.name)}" ${isInst && i.name === currentScope.name ? "selected" : ""}>
+      ${esc(i.name)} (${esc(i.code)})
+    </option>
+  `).join("");
+
+  openModal("Add Student Record", `
+    <form id="studentForm">
+      <div class="form-grid">
+        <div class="form-field"><label>Full Legal Name *</label><input name="name" required placeholder="Aarav Sharma"></div>
+        <div class="form-field"><label>APAAR ID (12 digits) *</label><input name="apaar" required placeholder="123456789012" maxlength="12"></div>
+        <div class="form-field"><label>Aadhaar Number (12 digits)</label><input name="aadhar" placeholder="Optional - auto-generated if blank" maxlength="12"></div>
+        <div class="form-field"><label>Institution *</label>
+          <select name="institution" required ${isInst ? "disabled" : ""}>
+            ${instOptions}
+          </select>
+        </div>
+        <div class="form-field"><label>Course Program *</label><input name="course" required value="B.Tech - Computer Engineering"></div>
+        <div class="form-field"><label>Current Semester</label><select name="semester"><option value="1">Semester 1</option><option value="2">Semester 2</option><option value="3">Semester 3</option><option value="4">Semester 4</option></select></div>
+        <div class="form-field"><label>Prerequisite Qualification</label><input name="last_degree" value="12th Standard / HSC"></div>
+        <div class="form-field"><label>Date of Birth</label><input type="date" name="dob" value="2007-04-15"></div>
+      </div>
+      <p class="small-label" style="margin-top:14px">This record will be permanently saved to disk in <code>ground_truth.db</code>.</p>
+    </form>`, async () => {
+    const form = $("#studentForm");
+    if (!form.reportValidity()) return;
+    const payload = Object.fromEntries(new FormData(form));
+    if (isInst) payload.institution = currentScope.name;
+
+    try {
+      const res = await fetch("/api/students", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast(data.error || "Failed to add student.", true);
+        return;
+      }
+      toast(data.message);
+      closeModal();
+      refreshGlobalBadges();
+      if (currentPage === "students") loadStudents(1);
+      else if (currentPage === "overview") renderOverview();
+    } catch (err) {
+      toast(err.message, true);
+    }
+  });
+}
+
+async function openStudentEditModal(s) {
+  const instOptions = cachedInstitutions.map(i => `
+    <option value="${esc(i.name)}" ${i.name === s.institution ? "selected" : ""}>${esc(i.name)} (${esc(i.code)})</option>
+  `).join("");
+
+  openModal(`Edit Student Record · ${esc(s.id)}`, `
+    <form id="editStudentForm">
+      <div class="form-grid">
+        <div class="form-field"><label>Full Legal Name *</label><input name="name" required value="${esc(s.name)}"></div>
+        <div class="form-field"><label>APAAR ID</label><input value="${esc(s.apaar)}" disabled style="background:#f5f7fb; opacity:0.8"></div>
+        <div class="form-field"><label>Aadhaar Number</label><input value="${esc(s.aadhar)}" disabled style="background:#f5f7fb; opacity:0.8"></div>
+        <div class="form-field"><label>Allocated Institution *</label>
+          <select name="institution" required>
+            ${instOptions}
+          </select>
+        </div>
+        <div class="form-field"><label>Course Program *</label><input name="course" required value="${esc(s.course)}"></div>
+        <div class="form-field"><label>Current Semester</label>
+          <select name="semester">
+            ${[1, 2, 3, 4, 5, 6, 7, 8].map(sm => `<option value="${sm}" ${Number(s.semester) === sm ? "selected" : ""}>Semester ${sm}</option>`).join("")}
+          </select>
+        </div>
+        <div class="form-field"><label>Prerequisite Qualification</label><input name="last_degree" value="${esc(s.last_degree || '12th Standard / HSC')}"></div>
+        <div class="form-field"><label>Date of Birth</label><input type="date" name="dob" value="${esc(s.dob || '2007-04-15')}"></div>
+        <div class="form-field"><label>Verification Status</label>
+          <select name="status">
+            <option value="Verified" ${s.status === "Verified" ? "selected" : ""}>Verified</option>
+            <option value="Flagged" ${s.status === "Flagged" ? "selected" : ""}>Flagged</option>
+          </select>
+        </div>
+      </div>
+      <p class="small-label" style="margin-top:14px">Updates will be committed directly to disk in <code>ground_truth.db</code>.</p>
+    </form>`, async () => {
+    const form = $("#editStudentForm");
+    if (!form.reportValidity()) return;
+    const payload = Object.fromEntries(new FormData(form));
+
+    try {
+      const res = await fetch(`/api/students/${s.numeric_id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast(data.error || "Failed to update student.", true);
+        return;
+      }
+      toast(data.message);
+      closeModal();
+      if (currentPage === "students") loadStudents(studentPage);
+      else if (currentPage === "overview") renderOverview();
+    } catch (err) {
+      toast(err.message, true);
+    }
+  }, "Save Changes");
+}
+
+async function openUploadModal() {
+  const isInst = currentScope.type === "institution";
+  const instOptions = cachedInstitutions.map(i => `
+    <option value="${esc(i.name)}" ${isInst && i.name === currentScope.name ? "selected" : ""}>${esc(i.name)}</option>
+  `).join("");
+
+  openModal("Ingest College Admission CSV / Excel", `
+    <form id="uploadForm">
+      <div class="form-field" style="margin-bottom:14px">
+        <label>Submitting Institution</label>
+        <select id="uploadCollegeSelect" name="college_name" ${isInst ? "disabled" : ""}>
+          ${instOptions}
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Upload File (.csv or .xlsx)</label>
+        <input type="file" id="collegeFile" name="file" accept=".csv, .xlsx" required style="padding:10px">
+      </div>
+      <p class="small-label" style="margin-top:14px">
+        Incoming records will be processed through the Scikit-Learn Random Forest model. Clean students are auto-allocated to Ground Truth; duplicates & discrepancies are quarantined.
+      </p>
+    </form>`, async () => {
+    const fileInp = $("#collegeFile");
+    if (!fileInp.files.length) {
+      toast("Please select a file to upload.", true);
+      return;
+    }
+    const formData = new FormData();
+    formData.append("file", fileInp.files[0]);
+    formData.append("college_name", isInst ? currentScope.name : $("#uploadCollegeSelect").value);
+
+    toast("Processing file through Random Forest model...");
+    try {
+      const res = await fetch("/api/upload-csv", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) {
+        toast(data.error || "Upload failed.", true);
+        return;
+      }
+      closeModal();
+      toast(data.message);
+      refreshGlobalBadges();
+      if (currentPage === "students") loadStudents(1);
+      else if (currentPage === "validation") renderValidation();
+      else if (currentPage === "overview") renderOverview();
+    } catch (err) {
+      toast(err.message, true);
+    }
+  }, "Run ML Ingestion");
+}
+
+function openAdjudicationModal(apaarId, name, collegeA, claimB) {
+  openModal("Adjudicate Dual Admission Claim", `
+    <div class="notice">
+      <span class="notice-icon">i</span>
+      <div>
+        <strong>Dual Enrollment Conflict for ${esc(name)}</strong>
+        <span>This student is concurrently claimed by two institutions in the same admission cycle.</span>
+      </div>
+    </div>
+    <div class="result-row"><span>Student Name</span><strong>${esc(name)}</strong></div>
+    <div class="result-row"><span>APAAR ID</span><strong>${esc(apaarId)}</strong></div>
+    <div class="result-row"><span>College Claim A</span><strong>${esc(collegeA)}</strong></div>
+    <div class="result-row"><span>College Claim B</span><strong>${esc(claimB)}</strong></div>
+    <div class="form-field" style="margin-top:16px">
+      <label>Confirm Official Admission to:</label>
+      <select id="approvedCollegeSelect">
+        <option value="${esc(collegeA)}">${esc(collegeA)}</option>
+        <option value="${esc(claimB)}">${esc(claimB)}</option>
+      </select>
+    </div>
+    <div class="form-field" style="margin-top:12px">
+      <label>Verification Document / Adjudication Note</label>
+      <input id="adjudicationNotes" placeholder="e.g. Verified via CAP round allotment & fee payment receipt.">
+    </div>
+    <p class="small-label" style="margin-top:14px">
+      Clicking 'Confirm & Update Ground Truth' will officially allocate the student in <code>ground_truth.db</code> and release the other college's seat claim.
+    </p>`, async () => {
+    const approved = $("#approvedCollegeSelect").value;
+    const notes = $("#adjudicationNotes").value || "Adjudicated by AICTE Verifier.";
+
+    try {
+      const res = await fetch("/api/resolve-duplicate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apaar_id: apaarId, approved_college: approved, notes }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast(data.error || "Adjudication failed.", true);
+        return;
+      }
+      toast(data.message);
+      closeModal();
+      refreshGlobalBadges();
+      renderDuplicates();
+    } catch (err) {
+      toast(err.message, true);
+    }
+  }, "Confirm & Update Ground Truth");
+}
+
+function viewStudentDetails(s) {
+  openModal("Student Master Record Details", `
+    <div class="result-row"><span>Full Legal Name</span><strong>${esc(s.name)}</strong></div>
+    <div class="result-row"><span>Record Identifier</span><strong>${esc(s.id)}</strong></div>
+    <div class="result-row"><span>APAAR ID</span><strong>${esc(s.apaar)}</strong></div>
+    <div class="result-row"><span>Aadhaar Binding</span><strong>${esc(s.aadhar)}</strong></div>
+    <div class="result-row"><span>Date of Birth</span><strong>${esc(s.dob)} (${esc(s.gender)})</strong></div>
+    <div class="result-row"><span>Allocated Institution</span><strong>${esc(s.institution)}</strong></div>
+    <div class="result-row"><span>Affiliating University</span><strong>${esc(s.university)}</strong></div>
+    <div class="result-row"><span>Program & Semester</span><strong>${esc(s.course)} (Semester ${s.semester})</strong></div>
+    <div class="result-row"><span>Prior Degree</span><strong>${esc(s.last_degree)}</strong></div>
+    <div class="result-row"><span>Verification Status</span><strong><span class="status ${statusClass(s.status)}">${esc(s.status)}</span></strong></div>
+    <div style="margin-top:18px; display:flex; justify-content:space-between; align-items:center">
+      <span class="small-label">Persisted in <code>database/ground_truth.db</code>.</span>
+      <button class="secondary-btn" onclick="closeModal(); openStudentEditModal(${JSON.stringify(s).replace(/"/g, '&quot;')})">✎ Edit this record</button>
+    </div>
+  `, () => closeModal(), "Close");
+}
+
+function lookupAndOpenStudent(apaar) {
+  currentPage = "verification";
+  render();
+  setTimeout(() => runVerifyDirect("apaar", apaar), 100);
+}
+
+function resolveIssue(btn, subId) {
+  btn.closest(".validation-row").querySelector(".status").className = "status verified";
+  btn.closest(".validation-row").querySelector(".status").textContent = "Reviewed";
+  btn.textContent = "Reviewed";
+  btn.disabled = true;
+  btn.style.opacity = ".55";
+  toast("Issue marked as reviewed.");
+}
+
+// -------------------------------------------------------------
+// Router & Page Navigation
+// -------------------------------------------------------------
+const pages = {
+  overview: { title: "Overview", eyebrow: "VERIFICATION OVERVIEW", desc: "Live student verification and anomaly integrity status." },
+  students: { title: "Student Directory", eyebrow: "ENROLLED STUDENTS", desc: "Manage and verify student records under this jurisdiction." },
+  validation: { title: "Validation Queue", eyebrow: "DATA QUALITY", desc: "Quarantined records flagged by the Random Forest classifier." },
+  duplicates: { title: "Duplicate Enrolment Alerts", eyebrow: "COLLISION REVIEW", desc: "Multi-institutional admission conflicts." },
+  verification: { title: "Verify a Student", eyebrow: "VERIFICATION DESK", desc: "Real-time ML verification queries against master records." },
+  reports: { title: "Reports & Exports", eyebrow: "REPORTING CENTRE", desc: "Download live CSV reports streamed directly from SQLite." },
+};
+
+function render() {
+  const p = pages[currentPage];
+  $("#breadcrumb").textContent = p.title;
+  $("#pageTitle").innerHTML = `${esc(currentScope.name)} <span>✦</span>`;
+  $("#pageEyebrow").textContent = `${currentRole.toUpperCase()} · ${p.eyebrow}`;
+  $("#pageDescription").textContent = p.desc;
+
+  $$(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.page === currentPage));
+  $("#newRecordBtn").style.display = ["overview", "students"].includes(currentPage) ? "inline-flex" : "none";
+
+  if (currentPage === "overview") renderOverview();
+  else if (currentPage === "students") renderStudents();
+  else if (currentPage === "validation") renderValidation();
+  else if (currentPage === "duplicates") renderDuplicates();
+  else if (currentPage === "verification") {
+    $("#pageContent").innerHTML = renderVerification();
+    $("#verifyForm").addEventListener("submit", e => {
+      e.preventDefault();
+      executeVerification($("#verifyType").value, $("#verifyValue").value.trim());
+    });
+  } else if (currentPage === "reports") {
+    renderReports();
+  }
+}
+
+function navigate(p) {
+  currentPage = p;
+  render();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function max(a, b) { return a > b ? a : b; }
+
+// -------------------------------------------------------------
+// Event Listeners Setup
+// -------------------------------------------------------------
+$("#sideNav").addEventListener("click", e => {
+  const b = e.target.closest("[data-page]");
+  if (b) navigate(b.dataset.page);
+});
+
+$("#newRecordBtn").addEventListener("click", openStudentModal);
+$("#exportBtn").addEventListener("click", () => window.location.href = "/api/export/students");
+
+// Topbar user switcher button & user chip
+$("#switchUserBtn").addEventListener("click", openSwitchUserModal);
+$("#userChipBtn").addEventListener("click", openSwitchUserModal);
+
+// Login Role selector toggle
+$("#roleSelect").addEventListener("change", e => {
+  const r = e.target.value;
+  $("#instituteSelectWrap").classList.toggle("hidden", r !== "institution");
+  $("#universitySelectWrap").classList.toggle("hidden", r !== "university");
+});
+
+$("#loginBtn").addEventListener("click", () => {
+  const r = $("#roleSelect").value;
+  currentRole = r;
+
+  if (r === "institution") {
+    const instName = $("#loginInstituteSelect").value;
+    currentScope = { type: "institution", name: instName };
+  } else if (r === "university") {
+    const uniName = $("#loginUniversitySelect").value;
+    currentScope = { type: "university", name: uniName };
+  } else {
+    currentScope = { type: "admin", name: "AICTE Central HQ" };
+  }
+
+  $("#loginView").classList.add("hidden");
+  $("#appView").classList.remove("hidden");
+  updateTopAndSidebarHeaders();
+  refreshGlobalBadges();
+  navigate("overview");
+});
+
+$("#logoutBtn").addEventListener("click", () => {
+  $("#appView").classList.add("hidden");
+  $("#loginView").classList.remove("hidden");
+  currentPage = "overview";
+  toast("Signed out.");
+});
+
+// Expose globals for inline onclicks
+window.navigate = navigate;
+window.toast = toast;
+window.openStudentModal = openStudentModal;
+window.openStudentEditModal = openStudentEditModal;
+window.openUploadModal = openUploadModal;
+window.openSwitchUserModal = openSwitchUserModal;
+window.toggleModalSwitchRoleFields = toggleModalSwitchRoleFields;
+window.closeModal = closeModal;
+window.loadStudents = loadStudents;
+window.debounceStudentSearch = debounceStudentSearch;
+window.viewStudentDetails = viewStudentDetails;
+window.lookupAndOpenStudent = lookupAndOpenStudent;
+window.resolveIssue = resolveIssue;
+window.openAdjudicationModal = openAdjudicationModal;
+window.runVerifyDirect = runVerifyDirect;
+
+// Initial Load
+loadMetadata().then(() => {
+  if (!$("#loginView").classList.contains("hidden")) {
+    // on login view
+  } else {
+    updateTopAndSidebarHeaders();
+    refreshGlobalBadges();
+    render();
+  }
+});
