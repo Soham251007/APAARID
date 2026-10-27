@@ -792,8 +792,10 @@ def get_validation_queue():
     col_cur = col_conn.cursor()
 
     query = """
-        SELECT submission_id, college_name, apaar_id, full_name,
-               anomaly_types, current_semester, last_successful_degree
+        SELECT submission_id, batch_id, college_name, university_name,
+               apaar_id, aadhar_number, full_name, date_of_birth, gender,
+               course_name, current_semester, last_successful_degree,
+               anomaly_types
         FROM college_submitted_students
         WHERE is_anomaly = 1
     """
@@ -824,10 +826,20 @@ def get_validation_queue():
         priority = "High priority" if any(k in anom for k in ["AADHAAR", "DUAL_ENROLLMENT", "INCOMPLETE_APAAR"]) else "Review needed"
         records.append({
             "id": r["submission_id"],
+            "batch_id": r["batch_id"],
+            "college": r["college_name"],
+            "university": r["university_name"],
+            "apaar": r["apaar_id"],
+            "aadhar": r["aadhar_number"],
+            "name": r["full_name"],
+            "dob": r["date_of_birth"],
+            "gender": r["gender"],
+            "course": r["course_name"],
+            "semester": r["current_semester"],
+            "last_degree": r["last_successful_degree"],
             "issue": anom.split("(")[0].replace("_", " ").title(),
             "detail": f"{r['full_name']} · {r['college_name']}",
             "full_detail": anom,
-            "apaar": r["apaar_id"],
             "priority": priority,
             "color": "red" if priority == "High priority" else "amber",
         })
@@ -836,7 +848,158 @@ def get_validation_queue():
 
 
 # -------------------------------------------------------------
-# API: Resolve / Mark Reviewed a Validation Issue
+# API: Get Specific Validation Record & Ground Truth Comparison
+# -------------------------------------------------------------
+@app.route("/api/validation-record/<int:sub_id>", methods=["GET"])
+def get_validation_record(sub_id):
+    col_conn = get_college_db()
+    col_cur = col_conn.cursor()
+    col_cur.execute(
+        """
+        SELECT submission_id, batch_id, college_name, university_name,
+               apaar_id, aadhar_number, full_name, date_of_birth, gender,
+               course_name, current_semester, last_successful_degree,
+               anomaly_types
+        FROM college_submitted_students
+        WHERE submission_id = ?;
+        """,
+        (sub_id,),
+    )
+    col_row = col_cur.fetchone()
+    col_conn.close()
+
+    if not col_row:
+        return jsonify({"error": "Submission record not found."}), 404
+
+    # Fetch corresponding Ground Truth record if available
+    gt_conn = get_gt_db()
+    gt_cur = gt_conn.cursor()
+    gt_cur.execute(
+        """
+        SELECT id, apaar_id, aadhar_number, full_name, date_of_birth, gender,
+               course_name, current_semester, last_successful_degree,
+               institution_name, university_name
+        FROM ground_truth_students
+        WHERE apaar_id = ?;
+        """,
+        (col_row["apaar_id"],),
+    )
+    gt_row = gt_cur.fetchone()
+    gt_conn.close()
+
+    submission_data = {k: col_row[k] for k in col_row.keys()}
+    gt_data = {k: gt_row[k] for k in gt_row.keys()} if gt_row else None
+
+    return jsonify({
+        "submission": submission_data,
+        "ground_truth": gt_data,
+    })
+
+
+# -------------------------------------------------------------
+# API: Resolve & Edit a Validation Issue (Updates College DB directly)
+# -------------------------------------------------------------
+@app.route("/api/resolve-validation-edit/<int:sub_id>", methods=["PUT", "POST"])
+def resolve_validation_edit(sub_id):
+    data = request.json or {}
+    full_name = data.get("full_name", "").strip()
+    aadhar_number = data.get("aadhar_number", "").strip().replace("-", "").replace(" ", "")
+    date_of_birth = data.get("date_of_birth", "").strip()
+    course_name = data.get("course_name", "").strip()
+    try:
+        current_semester = int(data.get("current_semester", 1))
+    except (ValueError, TypeError):
+        current_semester = 1
+    last_degree = data.get("last_successful_degree", "").strip() or "12th Standard / HSC"
+    notes = data.get("notes", "Resolved and corrected by Institutional Authority.").strip()
+    sync_gt = bool(data.get("sync_ground_truth", False))
+
+    col_conn = get_college_db()
+    col_cur = col_conn.cursor()
+
+    col_cur.execute(
+        """
+        SELECT apaar_id, college_name, university_name FROM college_submitted_students
+        WHERE submission_id = ?;
+        """,
+        (sub_id,),
+    )
+    existing = col_cur.fetchone()
+    if not existing:
+        col_conn.close()
+        return jsonify({"error": "Submission record not found."}), 404
+
+    apaar_id = existing["apaar_id"]
+
+    # Update college_submitted_students directly on disk
+    col_cur.execute(
+        """
+        UPDATE college_submitted_students
+        SET full_name = ?,
+            aadhar_number = ?,
+            date_of_birth = ?,
+            course_name = ?,
+            current_semester = ?,
+            last_successful_degree = ?,
+            is_anomaly = 0,
+            anomaly_types = 'RESOLVED_BY_CORRECTION: ' || ?
+        WHERE submission_id = ?;
+        """,
+        (
+            full_name,
+            aadhar_number,
+            date_of_birth,
+            course_name,
+            current_semester,
+            last_degree,
+            notes,
+            sub_id,
+        ),
+    )
+    col_conn.commit()
+    col_conn.close()
+
+    # If requested or verified, also update ground truth to keep master data aligned
+    if sync_gt:
+        gt_conn = get_gt_db()
+        gt_cur = gt_conn.cursor()
+        gt_cur.execute(
+            """
+            UPDATE ground_truth_students
+            SET full_name = ?,
+                aadhar_number = ?,
+                date_of_birth = ?,
+                course_name = ?,
+                current_semester = ?,
+                last_successful_degree = ?,
+                institution_name = ?,
+                university_name = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE apaar_id = ?;
+            """,
+            (
+                full_name,
+                aadhar_number,
+                date_of_birth,
+                course_name,
+                current_semester,
+                last_degree,
+                existing["college_name"],
+                existing["university_name"],
+                apaar_id,
+            ),
+        )
+        gt_conn.commit()
+        gt_conn.close()
+
+    return jsonify({
+        "success": True,
+        "message": f"Submission #{sub_id} ({full_name}) successfully updated in college database and marked as resolved.",
+    })
+
+
+# -------------------------------------------------------------
+# API: Quick Mark Reviewed a Validation Issue
 # -------------------------------------------------------------
 @app.route("/api/resolve-validation/<int:sub_id>", methods=["POST"])
 def resolve_validation(sub_id):

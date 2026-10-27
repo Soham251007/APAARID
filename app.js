@@ -424,6 +424,7 @@ async function renderValidation() {
             </div>
             <div class="val-actions">
               <span class="status ${item.color === 'red' ? 'flagged' : 'pending'}">${esc(item.priority)}</span>
+              <button class="primary-btn" onclick="openResolveModal(${item.id})">✎ Resolve & Edit</button>
               <button class="secondary-btn" onclick="resolveIssue(this, ${item.id})">Mark reviewed</button>
             </div>
           </div>
@@ -1019,6 +1020,193 @@ async function resolveIssue(btn, subId) {
   }
 }
 
+async function openResolveModal(subId) {
+  try {
+    toast("Loading submission details...");
+    const res = await fetch(`/api/validation-record/${subId}`);
+    const data = await res.json();
+    if (!res.ok) {
+      toast(data.error || "Failed to load validation record", true);
+      return;
+    }
+
+    const sub = data.submission;
+    const gt = data.ground_truth;
+
+    const isHighPriority = sub.anomaly_types && (
+      sub.anomaly_types.includes("AADHAAR") || 
+      sub.anomaly_types.includes("DUAL") || 
+      sub.anomaly_types.includes("INCOMPLETE")
+    );
+
+    const gtSectionHtml = gt ? `
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; margin-bottom:14px">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px">
+          <span style="font-size:11px; font-weight:800; color:#334155; text-transform:uppercase; letter-spacing:0.5px">Master Ground Truth Reference</span>
+          <button type="button" class="secondary-btn" style="padding:4px 8px; font-size:10px" onclick="copyGroundTruthToResolveForm()">⚡ Copy All Ground Truth Values</button>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:11px">
+          <div><span class="muted">GT Name:</span> <strong>${esc(gt.full_name)}</strong></div>
+          <div><span class="muted">GT Aadhaar:</span> <strong>${esc(gt.aadhar_number)}</strong></div>
+          <div><span class="muted">GT DOB:</span> <strong>${esc(gt.date_of_birth)} (${esc(gt.gender)})</strong></div>
+          <div><span class="muted">GT Program:</span> <strong>${esc(gt.course_name)}</strong></div>
+          <div><span class="muted">GT Semester:</span> <strong>Semester ${gt.current_semester}</strong></div>
+          <div><span class="muted">GT Prior Degree:</span> <strong>${esc(gt.last_successful_degree)}</strong></div>
+        </div>
+      </div>
+    ` : `
+      <div style="background:#fffbeb; border:1px solid #fef3c7; border-radius:8px; padding:10px; margin-bottom:14px; font-size:11px; color:#92400e">
+        ℹ <strong>Notice:</strong> This APAAR ID was not found in the central Ground Truth database. You can directly rectify the college database record below, and optionally synchronize it to the master registry.
+      </div>
+    `;
+
+    openModal(`Resolve Anomaly & Edit College Record · #${subId}`, `
+      <div class="notice" style="border-left: 4px solid ${isHighPriority ? 'var(--red)' : 'var(--amber)'}; margin-bottom:14px">
+        <span class="notice-icon">⚠</span>
+        <div>
+          <strong>Flagged Issue: ${esc(sub.anomaly_types || 'Flagged for verification')}</strong>
+          <span style="font-size:11px; display:block; color:#5c6b7e; margin-top:2px">
+            College: <strong>${esc(sub.college_name)}</strong> · APAAR: <strong>${esc(sub.apaar_id)}</strong>
+          </span>
+        </div>
+      </div>
+
+      ${gtSectionHtml}
+
+      <form id="resolveEditForm">
+        <div class="form-grid">
+          <div class="form-field">
+            <label>Student Full Name *</label>
+            <input id="resFullName" name="full_name" required value="${esc(sub.full_name || '')}">
+          </div>
+          <div class="form-field">
+            <label>APAAR ID</label>
+            <input value="${esc(sub.apaar_id || '')}" disabled style="background:#f5f7fb; opacity:0.8">
+          </div>
+          <div class="form-field">
+            <label>Aadhaar Number *</label>
+            <input id="resAadhar" name="aadhar_number" required value="${esc(sub.aadhar_number || '')}" placeholder="12-digit UID">
+          </div>
+          <div class="form-field">
+            <label>Date of Birth *</label>
+            <input id="resDob" type="date" name="date_of_birth" required value="${esc(sub.date_of_birth || '')}">
+          </div>
+          <div class="form-field">
+            <label>Course / Program *</label>
+            <input id="resCourse" name="course_name" required value="${esc(sub.course_name || '')}">
+          </div>
+          <div class="form-field">
+            <label>Current Semester *</label>
+            <select id="resSemester" name="current_semester">
+              ${[1, 2, 3, 4, 5, 6, 7, 8].map(sm => `<option value="${sm}" ${Number(sub.current_semester) === sm ? "selected" : ""}>Semester ${sm}</option>`).join("")}
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Prior Degree / Qualification</label>
+            <input id="resLastDegree" name="last_successful_degree" value="${esc(sub.last_successful_degree || '12th Standard / HSC')}">
+          </div>
+          <div class="form-field">
+            <label>Resolution Action / Audit Notes</label>
+            <input id="resNotes" name="notes" placeholder="e.g. Corrected semester progression from marksheets." value="Resolved & corrected by Institutional Authority">
+          </div>
+        </div>
+
+        <div style="margin-top:14px; padding:10px 12px; background:#f0f7ff; border:1px solid #d0e4ff; border-radius:8px; display:flex; align-items:center; gap:9px">
+          <input type="checkbox" id="resSyncGt" name="sync_ground_truth" checked style="width:16px; height:16px; cursor:pointer">
+          <label for="resSyncGt" style="font-size:11px; color:#1e3a8a; cursor:pointer; margin:0">
+            <strong>Synchronize correction to Central Ground Truth</strong> (Ensures master APAAR registry also matches corrected college data)
+          </label>
+        </div>
+        <p class="small-label" style="margin-top:10px">
+          Saving will immediately commit changes to <code>college_submitted_students</code> in SQLite, clear the anomaly flag (<code>is_anomaly = 0</code>), and remove this item from the validation queue.
+        </p>
+      </form>
+    `, async () => {
+      const form = $("#resolveEditForm");
+      if (!form.reportValidity()) return;
+
+      const payload = {
+        full_name: $("#resFullName").value.trim(),
+        aadhar_number: $("#resAadhar").value.trim(),
+        date_of_birth: $("#resDob").value.trim(),
+        course_name: $("#resCourse").value.trim(),
+        current_semester: parseInt($("#resSemester").value, 10),
+        last_successful_degree: $("#resLastDegree").value.trim(),
+        notes: $("#resNotes").value.trim() || "Resolved & corrected by Institutional Authority",
+        sync_ground_truth: $("#resSyncGt") ? $("#resSyncGt").checked : false,
+      };
+
+      const saveBtn = $("#modalSave");
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = "Saving to College DB...";
+      }
+
+      try {
+        const saveRes = await fetch(`/api/resolve-validation-edit/${subId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const saveJson = await saveRes.json();
+        if (!saveRes.ok) {
+          toast(saveJson.error || "Failed to save resolution", true);
+          if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = "Save Changes & Resolve Anomaly";
+          }
+          return;
+        }
+
+        closeModal();
+        toast(saveJson.message || "College DB updated and anomaly resolved!");
+
+        const row = document.getElementById(`valRow-${subId}`);
+        if (row) {
+          row.style.transition = "all 0.3s ease";
+          row.style.opacity = "0";
+          row.style.transform = "translateX(25px)";
+          setTimeout(() => {
+            row.remove();
+            refreshGlobalBadges();
+            const remaining = document.querySelectorAll(".validation-row").length;
+            if (remaining === 0) {
+              renderValidation();
+            } else {
+              const valCountElem = document.querySelector(".stats-grid .stat-card:first-child .stat-number");
+              if (valCountElem) valCountElem.textContent = remaining.toLocaleString();
+            }
+          }, 300);
+        } else {
+          refreshGlobalBadges();
+          renderValidation();
+        }
+      } catch (err) {
+        toast("Error saving resolution: " + err.message, true);
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.textContent = "Save Changes & Resolve Anomaly";
+        }
+      }
+    }, "Save Changes & Resolve Anomaly");
+
+    // Helper to copy Ground Truth values into the form fields
+    window.copyGroundTruthToResolveForm = function() {
+      if (!gt) return;
+      if ($("#resFullName")) $("#resFullName").value = gt.full_name || "";
+      if ($("#resAadhar")) $("#resAadhar").value = gt.aadhar_number || "";
+      if ($("#resDob")) $("#resDob").value = gt.date_of_birth || "";
+      if ($("#resCourse")) $("#resCourse").value = gt.course_name || "";
+      if ($("#resSemester")) $("#resSemester").value = gt.current_semester || 1;
+      if ($("#resLastDegree")) $("#resLastDegree").value = gt.last_successful_degree || "12th Standard / HSC";
+      if ($("#resNotes")) $("#resNotes").value = "Aligned college database values with master Ground Truth record.";
+      toast("Copied Ground Truth values into form.");
+    };
+  } catch (err) {
+    toast("Error loading validation record: " + err.message, true);
+  }
+}
+
 // -------------------------------------------------------------
 // Router & Page Navigation
 // -------------------------------------------------------------
@@ -1128,6 +1316,7 @@ window.debounceStudentSearch = debounceStudentSearch;
 window.viewStudentDetails = viewStudentDetails;
 window.lookupAndOpenStudent = lookupAndOpenStudent;
 window.resolveIssue = resolveIssue;
+window.openResolveModal = openResolveModal;
 window.openAdjudicationModal = openAdjudicationModal;
 window.runVerifyDirect = runVerifyDirect;
 
