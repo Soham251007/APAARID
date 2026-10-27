@@ -1118,8 +1118,9 @@ def export_csv(export_type):
 
 
 if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
     print("=" * 70)
-    print("Starting APAAR AICTE Verification Portal Server on http://127.0.0.1:5000")
+    print(f"Starting APAAR AICTE Verification Portal Server on port {port}")
     print("All ML models, ground truth, and institutional databases connected.")
     print("=" * 70)
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=port, debug=False)
