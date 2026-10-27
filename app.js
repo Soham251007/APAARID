@@ -416,14 +416,16 @@ async function renderValidation() {
             <p class="muted" style="margin-top:4px">All student records for ${esc(currentScope.name)} have passed anomaly screening.</p>
           </div>
         ` : queue.map(item => `
-          <div class="validation-row">
-            <div>
+          <div class="validation-row" id="valRow-${item.id}">
+            <div class="val-info">
               <strong>${esc(item.issue)}</strong>
               <small>${esc(item.detail)} · APAAR: ${esc(item.apaar)}</small>
               <div style="font-size:11px; color:#c05621; margin-top:3px">${esc(item.full_detail)}</div>
             </div>
-            <span class="status ${item.color === 'red' ? 'flagged' : 'pending'}">${esc(item.priority)}</span>
-            <button class="secondary-btn" onclick="resolveIssue(this, ${item.id})">Mark reviewed</button>
+            <div class="val-actions">
+              <span class="status ${item.color === 'red' ? 'flagged' : 'pending'}">${esc(item.priority)}</span>
+              <button class="secondary-btn" onclick="resolveIssue(this, ${item.id})">Mark reviewed</button>
+            </div>
           </div>
         `).join("")}
       </div>`;
@@ -980,13 +982,41 @@ function lookupAndOpenStudent(apaar) {
   setTimeout(() => runVerifyDirect("apaar", apaar), 100);
 }
 
-function resolveIssue(btn, subId) {
-  btn.closest(".validation-row").querySelector(".status").className = "status verified";
-  btn.closest(".validation-row").querySelector(".status").textContent = "Reviewed";
-  btn.textContent = "Reviewed";
-  btn.disabled = true;
-  btn.style.opacity = ".55";
-  toast("Issue marked as reviewed.");
+async function resolveIssue(btn, subId) {
+  try {
+    btn.disabled = true;
+    btn.textContent = "Clearing...";
+    const res = await fetch(`/api/resolve-validation/${subId}`, { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) {
+      toast(data.error || "Failed to update review status", true);
+      btn.disabled = false;
+      btn.textContent = "Mark reviewed";
+      return;
+    }
+    toast("Issue marked as reviewed and cleared from queue.");
+    const row = document.getElementById(`valRow-${subId}`);
+    if (row) {
+      row.style.transition = "all 0.3s ease";
+      row.style.opacity = "0";
+      row.style.transform = "translateX(25px)";
+      setTimeout(() => {
+        row.remove();
+        refreshGlobalBadges();
+        const remaining = document.querySelectorAll(".validation-row").length;
+        if (remaining === 0) {
+          renderValidation();
+        } else {
+          const valCountElem = document.querySelector(".stats-grid .stat-card:first-child .stat-number");
+          if (valCountElem) valCountElem.textContent = remaining.toLocaleString();
+        }
+      }, 300);
+    }
+  } catch (err) {
+    toast("Error: " + err.message, true);
+    btn.disabled = false;
+    btn.textContent = "Mark reviewed";
+  }
 }
 
 // -------------------------------------------------------------

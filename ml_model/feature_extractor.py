@@ -83,27 +83,34 @@ def get_degree_rank(degree_str: str) -> int:
     return 0
 
 
-def calculate_date_diff_days(d1: str, d2: str) -> int:
+def calculate_date_diff_days(d1: Any, d2: Any) -> int:
     """Calculate absolute difference in days between two date strings."""
+    if not d1 or not d2 or pd.isna(d1) or pd.isna(d2):
+        return 0
+    s1 = str(d1).strip().split(" ")[0].split("T")[0]
+    s2 = str(d2).strip().split(" ")[0].split("T")[0]
+    if not s1 or not s2 or s1 == s2:
+        return 0
+
     date_formats = ["%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y/%m/%d"]
     dt1 = None
     dt2 = None
 
     for fmt in date_formats:
-        if dt1 is None and d1:
+        if dt1 is None:
             try:
-                dt1 = datetime.strptime(d1.strip(), fmt)
+                dt1 = datetime.strptime(s1, fmt)
             except ValueError:
                 pass
-        if dt2 is None and d2:
+        if dt2 is None:
             try:
-                dt2 = datetime.strptime(d2.strip(), fmt)
+                dt2 = datetime.strptime(s2, fmt)
             except ValueError:
                 pass
 
     if dt1 and dt2:
         return abs((dt1 - dt2).days)
-    return 9999 if (d1 or d2) else 0
+    return 9999 if (s1 and s2 and s1 != s2) else 0
 
 
 class GroundTruthComparator:

@@ -836,6 +836,30 @@ def get_validation_queue():
 
 
 # -------------------------------------------------------------
+# API: Resolve / Mark Reviewed a Validation Issue
+# -------------------------------------------------------------
+@app.route("/api/resolve-validation/<int:sub_id>", methods=["POST"])
+def resolve_validation(sub_id):
+    col_conn = get_college_db()
+    col_cur = col_conn.cursor()
+    col_cur.execute(
+        """
+        UPDATE college_submitted_students
+        SET is_anomaly = 0,
+            anomaly_types = 'RESOLVED_REVIEWED: ' || COALESCE(anomaly_types, '')
+        WHERE submission_id = ?;
+        """,
+        (sub_id,),
+    )
+    col_conn.commit()
+    col_conn.close()
+    return jsonify({
+        "success": True,
+        "message": f"Record #{sub_id} marked as reviewed and removed from validation queue.",
+    })
+
+
+# -------------------------------------------------------------
 # API: Student Verification Lookup (Live ML Evaluation)
 # -------------------------------------------------------------
 @app.route("/api/verify", methods=["POST"])
@@ -940,13 +964,14 @@ def upload_csv():
 
     ingested_records = []
     for _, r in df.iterrows():
-        apaar = get_val(r, "apaar", "apaar id", "abc id no", "apaar_id")
-        aadhar = get_val(r, "aadhar", "aadhar number", "aadhar_number", "mobile")
-        name = get_val(r, "name", "full name", "student name", "student's name as per aadhar card")
-        dob = get_val(r, "dob", "date of birth", "student's date of birth (dd/mm/yyyy)")
-        course = get_val(r, "course", "course_name", "branch") or "B.Tech - Engineering"
-        sem_str = get_val(r, "semester", "current_semester", "select semester")
+        apaar = get_val(r, "apaar", "apaar_id", "apaar id", "abc id no", "abc_id", "apaarid")
+        aadhar = get_val(r, "aadhar", "aadhar_number", "aadhar number", "aadhaar", "aadhaar_number", "aadhaar number", "mobile")
+        name = get_val(r, "name", "full name", "full_name", "student name", "student_name", "student's name as per aadhar card")
+        dob = get_val(r, "date_of_birth", "dob", "date of birth", "student's date of birth (dd/mm/yyyy)", "birth_date", "birthdate")
+        course = get_val(r, "course", "course_name", "branch", "program", "degree") or "B.Tech - Engineering"
+        sem_str = get_val(r, "semester", "current_semester", "select semester", "sem")
         sem = int(re.sub(r"[^0-9]", "", sem_str)) if re.sub(r"[^0-9]", "", sem_str) else 1
+        degree = get_val(r, "last_degree", "last_successful_degree", "qualification", "prerequisite_degree") or "12th Standard / HSC"
 
         ingested_records.append({
             "college_name": college_name,
@@ -956,9 +981,9 @@ def upload_csv():
             "aadhar_number": aadhar.replace("-", "").replace(" ", ""),
             "full_name": name,
             "date_of_birth": dob,
-            "gender": get_val(r, "gender") or "Not Specified",
+            "gender": get_val(r, "gender", "sex") or "Not Specified",
             "course_name": course,
-            "last_successful_degree": "12th Standard / HSC",
+            "last_successful_degree": degree,
             "current_semester": sem,
         })
 
